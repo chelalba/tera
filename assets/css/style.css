@@ -874,3 +874,40 @@ a.contact-item:hover { transform: translateY(-2px); }
   .preview-wrap { max-width: 200px; }
   .publish-actions .btn { flex: 1; justify-content: center; }
 }
+
+/* ---------- owner password gate ---------- */
+
+.owner-lock {
+  background: var(--cream-deep);
+  border-bottom: 1px solid var(--line);
+  padding: 1.5rem 0;
+}
+.lock-form {
+  display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap;
+}
+.lock-form .field { margin-bottom: 0; min-width: 230px; }
+.owner-lock .field-hint { margin-top: .6rem; max-width: 60ch; }
+.owner-lock .field-error { margin: .6rem 0 0; }
+
+/* with no password entered the menu can be read but not changed */
+body.is-locked .tool-actions,
+body.is-locked .row-actions { display: none; }
+
+/* ---------- when the server cannot be reached ---------- */
+
+.load-error {
+  max-width: 62ch;
+  margin: 1rem auto 0;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-left: 3px solid #a14b3a;
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 1.6rem 1.75rem;
+}
+.load-error h3 { font-size: 1.15rem; margin-bottom: .6rem; }
+.load-error p { color: var(--muted); font-size: .94rem; }
+.load-error ol {
+  list-style: decimal; padding-left: 1.3rem; margin-top: 1rem;
+  color: var(--muted); font-size: .92rem;
+}
+.load-error li { margin-bottom: .35rem; }

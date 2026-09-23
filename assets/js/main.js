@@ -189,10 +189,19 @@
       const star = e.target.closest('.star');
       if (star) {
         const card = star.closest('.card');
+        const id = card.dataset.id;
         const value = Number(star.dataset.value);
-        TeraStore.rate(card.dataset.id, value);
-        $('.card-rating', card).innerHTML = starsMarkup(card.dataset.id);
-        toast('Thank you, your rating is saved.');
+
+        /* the stars fill in at once, the server confirms a moment later */
+        const redraw = () => { $('.card-rating', card).innerHTML = starsMarkup(id); };
+        TeraStore.rate(id, value).then(() => {
+          redraw();
+          toast('Thank you, your rating is saved.');
+        }).catch(() => {
+          redraw();
+          toast('Your rating did not save. Check your connection.');
+        });
+        redraw();
       }
     });
 
@@ -400,23 +409,36 @@
       return;
     }
 
-    const saved = TeraStore.addOrder({
+    /* The tab is opened now, while the click is still fresh, because a
+       browser blocks a new tab that appears after waiting on the
+       server. It is filled in once the order has its number. */
+    const tab = window.open('', '_blank');
+    const button = $('#sendOrder');
+    button.disabled = true;
+
+    TeraStore.addOrder({
       items: state.cart.map(line => {
         const p = product(line.id);
         return { id: p.id, name: p.name, price: p.price, qty: line.qty };
       }),
       total: cartTotal(),
       customer: details
+    }).then(saved => {
+      const url = 'https://wa.me/' + waNumber + '?text=' +
+                  encodeURIComponent(buildMessage(details, saved.ref));
+      if (tab) tab.location.href = url;
+      else window.location.href = url;
+
+      state.cart = [];
+      saveCart();
+      $('#orderForm').reset();
+      closeDrawer();
+      toast('Your order ' + saved.ref + ' is ready in WhatsApp. Press send there.');
+    }).catch(err => {
+      if (tab) tab.close();
+      button.disabled = false;
+      showOrderError('The order could not be saved. ' + err.message);
     });
-
-    const url = 'https://wa.me/' + waNumber + '?text=' + encodeURIComponent(buildMessage(details, saved.ref));
-    window.open(url, '_blank', 'noopener');
-
-    state.cart = [];
-    saveCart();
-    $('#orderForm').reset();
-    closeDrawer();
-    toast('Your order ' + saved.ref + ' is ready in WhatsApp. Press send there.');
   }
 
   /* ---------- notes ---------- */
@@ -494,11 +516,20 @@
       if (text.length < 3) { error.textContent = 'Please write your note first.'; error.hidden = false; $('#cText').focus(); return; }
 
       error.hidden = true;
-      TeraStore.addComment(name, text);
-      form.reset();
-      count.textContent = '0';
-      renderComments();
-      toast('Thank you, your note is saved.');
+      const button = $('button[type="submit"]', form);
+      button.disabled = true;
+
+      TeraStore.addComment(name, text).then(() => {
+        form.reset();
+        count.textContent = '0';
+        renderComments();
+        toast('Thank you, your note is saved.');
+      }).catch(err => {
+        error.textContent = 'The note did not save. ' + err.message;
+        error.hidden = false;
+      }).then(() => {
+        button.disabled = false;
+      });
     });
   }
 
@@ -534,19 +565,6 @@
     $('#oDate').min = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
   }
 
-  /* If the owner changes the menu in another tab, pick it up here
-     rather than showing a price that is no longer real. */
-  function watchMenu() {
-    window.addEventListener('storage', e => {
-      if (e.key !== TeraStore.keys.menu) return;
-      state.menu = TeraStore.menu();
-      dropMissingFromCart();
-      renderGrid();
-      renderCart();
-      toast('The menu was just updated.');
-    });
-  }
-
   /* an item the owner has removed should not sit in a basket */
   function dropMissingFromCart() {
     const before = state.cart.length;
@@ -554,22 +572,70 @@
     if (state.cart.length !== before) TeraStore.saveCart(state.cart);
   }
 
+  function paint() {
+    state.menu = TeraStore.menu();
+    dropMissingFromCart();
+    renderGrid();
+    renderCart();
+    renderComments();
+  }
+
+  /* Coming back to the tab after a while, ask the server again. The
+     owner may have changed a price since the page was opened. */
+  function refreshOnReturn() {
+    let lastLoad = Date.now();
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden || Date.now() - lastLoad < 30000) return;
+      TeraStore.load().then(() => { lastLoad = Date.now(); paint(); }).catch(() => {});
+    });
+  }
+
+  function showLoadError(err) {
+    const grid = $('#grid');
+    grid.innerHTML = '';
+
+    const box = document.createElement('div');
+    box.className = 'load-error';
+
+    const title = document.createElement('h3');
+    title.textContent = 'The menu could not be loaded';
+
+    const why = document.createElement('p');
+    why.textContent = err.message;
+
+    box.append(title, why);
+
+    if (err.offline) {
+      const how = document.createElement('ol');
+      [
+        'Open the tera folder.',
+        'Double click start.bat, or run npm start in a terminal there.',
+        'Open the address it prints, which looks like http://localhost:5500'
+      ].forEach(step => {
+        const li = document.createElement('li');
+        li.textContent = step;
+        how.appendChild(li);
+      });
+      box.appendChild(how);
+    }
+
+    grid.after(box);
+  }
+
   /* ---------- start ---------- */
 
-  dropMissingFromCart();
   fillShopDetails();
   renderChips();
-  renderGrid();
   wireGrid();
   wireSort();
-  renderCart();
   wireCart();
   wireDrawer();
-  renderComments();
   wireComments();
   wireNav();
-  watchMenu();
   setDateFloor();
-
   $('#sendOrder').addEventListener('click', sendOrder);
+
+  TeraStore.load()
+    .then(() => { paint(); refreshOnReturn(); })
+    .catch(showLoadError);
 })();

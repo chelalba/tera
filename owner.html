@@ -39,6 +39,22 @@
     </div>
   </header>
 
+  <!-- shown only when the server is set up with an owner password -->
+  <div class="owner-lock" id="ownerLock" hidden>
+    <div class="container">
+      <form class="lock-form" id="ownerLockForm">
+        <div class="field">
+          <label for="ownerKey">Owner password</label>
+          <input id="ownerKey" type="password" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" type="submit">Unlock</button>
+      </form>
+      <p class="field-error" id="ownerLockError" hidden></p>
+      <p class="field-hint">This is the OWNER_PASSWORD set on the server. Until it is entered the
+        menu can be read but not changed.</p>
+    </div>
+  </div>
+
   <main>
 
     <!-- ===================== menu ===================== -->
@@ -48,15 +64,15 @@
           <p class="section-num">01</p>
           <h1 class="section-title">Your menu</h1>
           <p class="section-sub">
-            Everything here is what customers see on the shop page. Changes are kept
-            straight away. Section 02 tells you how to put them on the real site.
+            Everything here is what customers see on the shop page. Anything you change is
+            saved at once and is live for them straight away.
           </p>
         </header>
 
         <div class="tool-row">
           <p class="tool-count"><span id="itemCount">0</span> items <span class="tool-sep" aria-hidden="true">/</span> <span id="itemBreak"></span></p>
           <div class="tool-actions">
-            <button class="btn btn-ghost btn-small" type="button" id="resetMenu" hidden>
+            <button class="btn btn-ghost btn-small" type="button" id="resetMenu">
               <svg aria-hidden="true"><use href="#i-undo"/></svg>
               Back to the original menu
             </button>
@@ -79,32 +95,24 @@
       <div class="container">
         <header class="section-head section-head-left">
           <p class="section-num">02</p>
-          <h2 class="section-title">Putting it on the real site</h2>
+          <h2 class="section-title">Where your shop lives</h2>
         </header>
 
         <div class="notice">
-          <p><strong>Read this once.</strong> Your changes are saved in this browser only. You can
-          see them on the shop page on this device, but a customer on their own phone still gets
-          the menu written in the file <code>assets/js/data.js</code>.</p>
-          <p>To change what everyone sees, copy the code below into that file, replacing the old
-          <code>MENU</code> list, then upload the site again. The button gives you the exact text.</p>
+          <p><strong>Your changes are already live.</strong> Everything you do here is written
+          into the shop database the moment you save it. A customer opening the shop on their own
+          phone sees the new menu straight away. There is nothing to upload.</p>
+          <p>The whole shop sits in one file on the server, <code>data/tera.db</code>. Keep a copy
+          of it somewhere safe, or take a backup here. The backup holds the menu, the star
+          ratings, the notes customers left and every order.</p>
         </div>
 
         <div class="publish-actions">
-          <button class="btn btn-primary" type="button" id="copyCode">
-            <svg aria-hidden="true"><use href="#i-copy"/></svg>
-            Copy the menu code
-          </button>
-          <button class="btn btn-ghost" type="button" id="downloadCode">
+          <button class="btn btn-primary" type="button" id="downloadBackup">
             <svg aria-hidden="true"><use href="#i-download"/></svg>
-            Download data.js
-          </button>
-          <button class="btn btn-ghost" type="button" id="toggleCode" aria-expanded="false" aria-controls="codeBox">
-            Show the code
+            Download a backup
           </button>
         </div>
-
-        <pre class="code-box" id="codeBox" hidden><code id="codeText"></code></pre>
       </div>
     </section>
 

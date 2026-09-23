@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /owner.html
+Disallow: /api/
