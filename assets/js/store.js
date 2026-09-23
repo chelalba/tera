@@ -19,6 +19,7 @@ const TeraStore = (function () {
 
   /* what the last call from the server told us */
   const cache = {
+    menuVersion: 0,
     menu: [],
     ratings: {},        /* itemId -> { average, count } */
     yourRatings: {},    /* itemId -> 1..5 */
@@ -102,6 +103,19 @@ const TeraStore = (function () {
     }).then(res =>
       res.json().catch(() => ({})).then(data => {
         if (!res.ok) {
+          /* The page loaded, but there is no shop behind this address.
+             Usually a plain file server such as the editor's Live
+             Server, which serves the html and knows nothing of /api. */
+          if (res.status === 404 && !data.error) {
+            const wrong = new Error(
+              'This address serves the pages but not the shop itself, so there is ' +
+              'no menu to load. Use the address the shop server prints when it ' +
+              'starts, which is usually a different port on localhost.'
+            );
+            wrong.wrongServer = true;
+            wrong.status = 404;
+            throw wrong;
+          }
           const err = new Error(data.error || ('the server said ' + res.status));
           err.status = res.status;
           throw err;
@@ -115,6 +129,7 @@ const TeraStore = (function () {
 
   function load() {
     return call('GET', '/bootstrap').then(data => {
+      cache.menuVersion = data.menuVersion || 0;
       cache.menu = data.menu || [];
       cache.ratings = data.ratings || {};
       cache.yourRatings = data.yourRatings || {};
@@ -130,27 +145,57 @@ const TeraStore = (function () {
 
   function menu() { return cache.menu; }
 
+  /* Asks the server for one number and says whether the menu has
+     moved since this page last read it. Cheap enough to call often. */
+  function menuChanged() {
+    return call('GET', '/menu-version')
+      .then(data => Number(data.version) !== Number(cache.menuVersion))
+      .catch(() => false);
+  }
+
+  /* A direct line between the menu manager and any shop page open in
+     the same browser. The owner saves, every shop tab hears it at
+     once and redraws, with no waiting for the next check. Other
+     devices still pick the change up through menuChanged above. */
+  const channel = (function () {
+    try { return new BroadcastChannel('tera-menu'); }
+    catch (err) { return null; }
+  })();
+
+  function announceMenuChange() {
+    if (channel) { try { channel.postMessage('menu-changed'); } catch (err) { /* ignore */ } }
+  }
+
+  function onMenuChange(handler) {
+    if (!channel) return;
+    channel.addEventListener('message', e => {
+      if (e.data === 'menu-changed') handler();
+    });
+  }
+
   function createItem(item) {
-    return call('POST', '/menu', item).then(d => { cache.menu = d.menu; return d.item; });
+    return call('POST', '/menu', item)
+      .then(d => { cache.menu = d.menu; announceMenuChange(); return d.item; });
   }
 
   function updateItem(id, item) {
     return call('PUT', '/menu/' + encodeURIComponent(id), item)
-      .then(d => { cache.menu = d.menu; return d.item; });
+      .then(d => { cache.menu = d.menu; announceMenuChange(); return d.item; });
   }
 
   function deleteItem(id) {
     return call('DELETE', '/menu/' + encodeURIComponent(id))
-      .then(d => { cache.menu = d.menu; return d.menu; });
+      .then(d => { cache.menu = d.menu; announceMenuChange(); return d.menu; });
   }
 
   function reorderMenu(ids) {
     return call('POST', '/menu/order', { ids: ids })
-      .then(d => { cache.menu = d.menu; return d.menu; });
+      .then(d => { cache.menu = d.menu; announceMenuChange(); return d.menu; });
   }
 
   function resetMenu() {
-    return call('POST', '/menu/reset').then(d => { cache.menu = d.menu; return d.menu; });
+    return call('POST', '/menu/reset')
+      .then(d => { cache.menu = d.menu; announceMenuChange(); return d.menu; });
   }
 
   /* ----- ratings ------------------------------------------------ */
@@ -221,7 +266,7 @@ const TeraStore = (function () {
 
   return {
     load, uid, device,
-    menu, createItem, updateItem, deleteItem, reorderMenu, resetMenu,
+    menu, menuChanged, onMenuChange, createItem, updateItem, deleteItem, reorderMenu, resetMenu,
     summary, myRating, rate,
     comments, addComment,
     addOrder,

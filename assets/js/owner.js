@@ -29,7 +29,8 @@
     menu: [],
     editingId: null,     /* null while adding a new item */
     draft: null,
-    busy: false
+    busy: false,
+    offline: false
   };
 
   /* ---------- helpers ---------- */
@@ -305,7 +306,9 @@
     request.then(() => {
       afterChange();
       hideDrawer();
-      toast(draft.name + (adding ? ' is on the menu.' : ' is saved.'));
+      toast(draft.name + (adding
+        ? ' is on the shop now, customers can see it.'
+        : ' is saved. The shop is showing the new details.'));
     }).catch(err => {
       if (err.status === 401) {
         error.textContent = 'The server did not accept that. Enter the owner password first.';
@@ -332,7 +335,17 @@
   }
 
   function wireEditor() {
-    $('#addItem').addEventListener('click', () => openEditor(null));
+    $('#addItem').addEventListener('click', () => {
+      /* still visible when the shop cannot be reached, so say why
+         rather than opening an editor that could not save anything */
+      if (state.offline) {
+        const box = $('.load-error');
+        if (box) box.scrollIntoView({ block: 'center' });
+        toast('Not connected to the shop yet. See the note above the list.');
+        return;
+      }
+      openEditor(null);
+    });
     $('#saveItem').addEventListener('click', saveItem);
 
     $('#deleteItem').addEventListener('click', e => {
@@ -506,18 +519,42 @@
   wireReset();
   wireLock();
 
-  TeraStore.load().then(() => {
-    afterChange();
-    showLock(!TeraStore.isOwner());
-  }).catch(err => {
+  /* The toolbar is never taken away. Losing the Add button because
+     something else went wrong leaves nothing to work with and no clue
+     why, so the problem is shown above it instead. */
+  function showPageError(err) {
+    state.offline = true;
+
     const box = document.createElement('div');
     box.className = 'load-error';
+
     const title = document.createElement('h3');
-    title.textContent = 'The menu could not be loaded';
+    title.textContent = err.wrongServer
+      ? 'This is not the shop address'
+      : 'The menu could not be loaded';
+
     const why = document.createElement('p');
     why.textContent = err.message;
     box.append(title, why);
-    $('#itemList').after(box);
-    $('.tool-row').hidden = true;
-  });
+
+    const how = document.createElement('ol');
+    [
+      'Open the tera folder and double click start.bat, or run npm start there.',
+      'It prints an address such as http://localhost:5502',
+      'Open that address, then add /owner.html to the end of it.'
+    ].forEach(step => {
+      const li = document.createElement('li');
+      li.textContent = step;
+      how.appendChild(li);
+    });
+    box.appendChild(how);
+
+    $('.tool-row').before(box);
+    $('#itemEmpty').hidden = true;
+  }
+
+  TeraStore.load().then(() => {
+    afterChange();
+    showLock(!TeraStore.isOwner());
+  }).catch(showPageError);
 })();

@@ -137,8 +137,15 @@ async function api(req, res, url) {
   const owner = isOwner(req);
 
   /* what the page needs on load, in one round trip */
+  /* One number, so a shop page left open can notice a changed menu
+     without pulling the whole thing down every time it checks. */
+  if (route === '/menu-version' && method === 'GET') {
+    return sendJson(res, 200, { version: db.menuVersion() });
+  }
+
   if (route === '/bootstrap' && method === 'GET') {
     return sendJson(res, 200, {
+      menuVersion: db.menuVersion(),
       menu: db.listItems(),
       ratings: db.ratingSummaries(),
       yourRatings: device ? db.ratingsByDevice(device) : {},
@@ -283,11 +290,26 @@ function serveFile(req, res, url) {
       return res.end('Not found');
     }
     const ext = path.extname(full).toLowerCase();
-    res.writeHead(200, {
+    const stamp = stat.mtime.toUTCString();
+
+    /* no-cache does not mean do not cache, it means ask first. The
+       browser keeps the file and we answer 304 when it has not moved,
+       so pages stay fast but an edit to data.js or a script shows up
+       on the next reload instead of hours later. */
+    const headers = {
       'content-type': TYPES[ext] || 'application/octet-stream',
-      'content-length': stat.size,
-      'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=3600'
-    });
+      'cache-control': 'no-cache',
+      'last-modified': stamp
+    };
+
+    if (req.headers['if-modified-since'] === stamp) {
+      res.writeHead(304, headers);
+      return res.end();
+    }
+
+    headers['content-length'] = stat.size;
+    res.writeHead(200, headers);
+    if (req.method === 'HEAD') return res.end();
     fs.createReadStream(full).pipe(res);
   });
 }

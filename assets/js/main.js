@@ -580,14 +580,40 @@
     renderComments();
   }
 
-  /* Coming back to the tab after a while, ask the server again. The
-     owner may have changed a price since the page was opened. */
-  function refreshOnReturn() {
-    let lastLoad = Date.now();
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden || Date.now() - lastLoad < 30000) return;
-      TeraStore.load().then(() => { lastLoad = Date.now(); paint(); }).catch(() => {});
+  /* Keeping up with the owner.
+
+     A shop page can sit open for hours while the owner adds a cake or
+     changes a price. Rather than pulling the whole menu down on a
+     timer, the page asks for one number and only reloads when that
+     number has moved. */
+  function watchMenu() {
+    let checking = false;
+
+    function check() {
+      if (checking || document.hidden) return;
+      checking = true;
+      TeraStore.menuChanged()
+        .then(changed => (changed ? TeraStore.load().then(() => {
+          paint();
+          toast('The menu has just been updated.');
+        }) : null))
+        .catch(() => {})
+        .then(() => { checking = false; });
+    }
+
+    /* the menu manager in another tab tells us the moment it saves,
+       so the shop redraws without waiting for the next check */
+    TeraStore.onMenuChange(() => {
+      TeraStore.load().then(() => {
+        paint();
+        toast('The menu has just been updated.');
+      }).catch(() => {});
     });
+
+    setInterval(check, 15000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+    window.addEventListener('focus', check);
+    window.addEventListener('pageshow', check);
   }
 
   function showLoadError(err) {
@@ -636,6 +662,6 @@
   $('#sendOrder').addEventListener('click', sendOrder);
 
   TeraStore.load()
-    .then(() => { paint(); refreshOnReturn(); })
+    .then(() => { paint(); watchMenu(); })
     .catch(showLoadError);
 })();

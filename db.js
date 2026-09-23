@@ -84,11 +84,36 @@ db.exec(`
     qty      INTEGER NOT NULL DEFAULT 1
   );
 
+  CREATE TABLE IF NOT EXISTS meta (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE INDEX IF NOT EXISTS ix_ratings_item ON ratings (item_id);
   CREATE INDEX IF NOT EXISTS ix_lines_order  ON order_lines (order_id);
 `);
 
 const now = () => Date.now();
+
+/* ---------------------------------------------------------------
+   Menu version
+
+   A number that goes up every time the menu changes. A shop page
+   left open asks for just this number, which costs almost nothing,
+   and only fetches the whole menu when it has moved.
+---------------------------------------------------------------- */
+
+function menuVersion() {
+  const row = db.prepare("SELECT value FROM meta WHERE key = 'menu_version'").get();
+  return row ? Number(row.value) : 0;
+}
+
+function bumpMenuVersion() {
+  db.prepare(`INSERT INTO meta (key, value) VALUES ('menu_version', '1')
+              ON CONFLICT (key) DO UPDATE SET value = CAST(CAST(value AS INTEGER) + 1 AS TEXT)`)
+    .run();
+  return menuVersion();
+}
 
 /* ---------------------------------------------------------------
    Menu
@@ -145,6 +170,7 @@ function createItem(input) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, input.name, input.category, input.price, input.serves, input.desc,
          input.illo, input.tint, input.photo, nextPosition(), now());
+  bumpMenuVersion();
   return getItem(id);
 }
 
@@ -157,6 +183,7 @@ function updateItem(id, input) {
       WHERE id = ?`)
     .run(input.name, input.category, input.price, input.serves, input.desc,
          input.illo, input.tint, input.photo, id);
+  bumpMenuVersion();
   return getItem(id);
 }
 
@@ -166,6 +193,7 @@ function updateItem(id, input) {
 function deleteItem(id) {
   const info = db.prepare('DELETE FROM items WHERE id = ?').run(id);
   db.prepare('DELETE FROM ratings WHERE item_id = ?').run(id);
+  if (info.changes > 0) bumpMenuVersion();
   return info.changes > 0;
 }
 
@@ -179,6 +207,7 @@ function reorderItems(ids) {
     db.exec('ROLLBACK');
     throw err;
   }
+  bumpMenuVersion();
   return listItems();
 }
 
@@ -303,6 +332,7 @@ function seedItems(menu) {
     db.exec('ROLLBACK');
     throw err;
   }
+  bumpMenuVersion();
   return listItems();
 }
 
@@ -325,5 +355,6 @@ module.exports = {
   rateItem, ratingSummaries, ratingsByDevice,
   listComments, addComment, hideComment,
   addOrder, listOrders,
-  isEmpty, seedItems, resetToSeed
+  isEmpty, seedItems, resetToSeed,
+  menuVersion
 };
