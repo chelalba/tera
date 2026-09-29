@@ -172,8 +172,13 @@ backup** in the menu manager, which is safe at any time.
 
 # Putting it online
 
-That has its own file: **[HOSTING.md](HOSTING.md)**. It covers Vercel for the
-site, Turso for the data, both free, and what has to change in the code first.
+Two plans, depending on how much setup you want:
+
+- **[HOSTING-EASY.md](HOSTING-EASY.md)** puts the shop online in about ten
+  minutes with no command line and no database. Ratings and customer notes
+  stop being shared. WhatsApp ordering is unaffected.
+- **[HOSTING.md](HOSTING.md)** is the full version: Vercel for the site, Turso
+  for the data, both free, more setup and a code change first.
 
 ## Still to do
 

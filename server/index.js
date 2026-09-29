@@ -35,7 +35,10 @@ const { URL } = require('node:url');
 
 const db = require('./db.js');
 
-const PORT = Number(process.env.PORT) || 5500;
+/* A host such as Railway tells us which port to use. Locally nobody
+   does, and then we are free to hunt for one that is not taken. */
+const GIVEN_PORT = Number(process.env.PORT) || 0;
+const PORT = GIVEN_PORT || 5500;
 const HOST = process.env.HOST || '0.0.0.0';
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || '';
 const ROOT = path.join(__dirname, '..');
@@ -366,7 +369,9 @@ const server = http.createServer((req, res) => {
    dying with a stack trace, move up to the next free one. */
 function listen(port, triesLeft) {
   server.once('error', err => {
-    if (err.code !== 'EADDRINUSE' || triesLeft <= 0) {
+    /* When the port was handed to us, moving off it would leave the
+       site unreachable with nothing to explain why. Better to stop. */
+    if (err.code !== 'EADDRINUSE' || triesLeft <= 0 || GIVEN_PORT) {
       console.error('\n  Could not start: ' + err.message + '\n');
       process.exit(1);
     }

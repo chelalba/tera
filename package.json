@@ -1,8 +1,8 @@
 {
-  "name": "tera-bakery",
+  "name": "tiramood",
   "version": "1.0.0",
   "private": true,
-  "description": "Tera Home Bakery: shop page, menu manager and a SQLite database.",
+  "description": "TiraMood: shop page in English and Arabic, menu manager, WhatsApp orders, SQLite.",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js"
