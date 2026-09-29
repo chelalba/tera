@@ -16,6 +16,7 @@ const TeraStore = (function () {
   const KEY_CART   = 'tera:cart';
   const KEY_DEVICE = 'tera:device';
   const KEY_OWNER  = 'tera:ownerKey';
+  const KEY_ORIGIN = 'tera:shopOrigin';
 
   /* what the last call from the server told us */
   const cache = {
@@ -152,21 +153,59 @@ const TeraStore = (function () {
      but has no shop behind it. The server itself moves up a port when
      one is busy, so rather than asking anybody to hunt for the right
      address we knock on the likely doors and find it. */
+  /* The ports worth knocking on, best guess first.
+
+     5500 upwards is where the server lands when nothing is set: it
+     starts at 5500 and climbs if a port is taken. A PORT in .env can
+     put it anywhere, so the ports editors and frameworks hand out are
+     worth a knock too. The list is short on purpose; every entry is a
+     failed request in the console when the shop is not there. */
+  const LIKELY_PORTS = [3000, 5500, 5501, 5502, 5503, 5504, 5505, 5506,
+                        5507, 5508, 5509, 5510, 5511, 5512, 5513, 5514,
+                        3001, 8000, 8080, 5173, 4000];
+
+  /* Does this address answer as the shop? Resolves to the origin, or
+     to null. Never rejects, so one bad port cannot sink the search. */
+  function shopAnswersAt(origin) {
+    const stop = new AbortController();
+    const timer = setTimeout(() => stop.abort(), 2500);
+    return fetch(origin + '/api/menu-version', {
+      headers: { 'x-device': device() },
+      signal: stop.signal
+    })
+      .then(res => (res.ok ? res.json() : Promise.reject()))
+      .then(data => (typeof data.version === 'number' ? origin : null))
+      .catch(() => null)
+      .then(result => { clearTimeout(timer); return result; });
+  }
+
   function findShopOrigin() {
     const host = location.hostname || 'localhost';
     const here = Number(location.port) || (location.protocol === 'https:' ? 443 : 80);
-    const ports = [];
-    for (let p = 5500; p <= 5514; p++) { if (p !== here) ports.push(p); }
 
-    const tries = ports.map(port => {
-      const origin = 'http://' + host + ':' + port;
-      return fetch(origin + '/api/menu-version', { headers: { 'x-device': device() } })
-        .then(res => (res.ok ? res.json() : Promise.reject()))
-        .then(data => (typeof data.version === 'number' ? origin : Promise.reject()))
-        .catch(() => null);
-    });
+    /* The one that worked last time, asked first and on its own. It is
+       almost always still right, and then nothing else is knocked on
+       and the console stays clean. */
+    const remembered = readLocal(KEY_ORIGIN, null);
 
-    return Promise.all(tries).then(found => found.find(Boolean) || null);
+    function sweep() {
+      const tries = LIKELY_PORTS
+        .filter(p => p !== here)
+        .map(p => shopAnswersAt('http://' + host + ':' + p));
+
+      return Promise.all(tries).then(found => found.find(Boolean) || null);
+    }
+
+    const first = (remembered && remembered !== location.origin)
+      ? shopAnswersAt(remembered)
+      : Promise.resolve(null);
+
+    return first
+      .then(hit => hit || sweep())
+      .then(origin => {
+        if (origin) writeLocal(KEY_ORIGIN, origin);
+        return origin;
+      });
   }
 
   /* A direct line between the menu manager and any shop page open in
