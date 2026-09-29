@@ -8,6 +8,9 @@
     "start": "node server/index.js"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.18.0"
   }
 }

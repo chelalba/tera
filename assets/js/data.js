@@ -235,3 +235,10 @@ const CATEGORIES = [
   { id: 'cookies',  label: 'Cookies',  label_ar: 'بسكويت' },
   { id: 'cupcakes', label: 'Cupcakes', label_ar: 'كب كيك' }
 ];
+
+/* The browser reads the three names above as globals. The server needs
+   them too, and requiring this file is safer than reading it off disk
+   once it is running somewhere like Vercel. */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { SHOP, CATEGORIES, MENU };
+}

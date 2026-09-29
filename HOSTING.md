@@ -1,193 +1,131 @@
-# Putting TiraMood online
+# Putting TiraMood online with Vercel and Turso
 
-This is the plan to follow. It keeps everything working the way it does now,
-including **changing the menu from your phone**, and it needs no command line
-and no changes to the code.
-
-Host: **Railway**. Cost: **$5 a month.**
+The code is rewritten and ready. Everything below is done in a browser.
+Free, and the menu stays editable from your phone.
 
 ---
 
-## Why this one
+## What changed, in short
 
-You said changing the menu from your phone matters. That rules out the free
-options, and it is worth understanding why, once, so the choice makes sense.
+Vercel does not run a server that stays awake. It runs a small function for
+each request and throws it away, so the SQLite file had nowhere to live. That
+is why the database moved to Turso, which you have already set up.
 
-Changing the menu from your phone means a server that is always awake, holding
-a database that remembers. No free host gives you that. I checked their own
-documentation rather than guess:
+The rewrite is done and tested:
 
-- **Render**: a persistent disk requires a **paid** service.
-- **Vercel**: throws the disk away after every request, so the database has to
-  move to a separate service, which is where the Turso setup came from.
-- **Railway free**: gives $1 of credit a month, which a shop running all day
-  will use up.
+- **`api/[...path].js`** is the whole API as one Vercel function. One file
+  rather than thirteen, so the routing stays in a single place.
+- **`server/routes.js`** holds every endpoint. Both Vercel and `npm start`
+  call it, so local and live cannot drift apart.
+- **`server/db.js`** now talks to Turso when `TURSO_URL` is set, and to
+  `data/tera.db` when it is not. Same SQL either way.
+- **`server/index.js`** is now only for your own computer.
 
-Railway's paid plan fixes all of it at once, and here is the part that makes it
-the safe choice: **nothing in your project has to change.** Railway puts your
-files in a folder called `/app`, and your database already lives at `data`
-inside the project. Mount the storage at `/app/data` and the file lands exactly
-where the code already looks for it.
-
-No rewrite means nothing new to break. That is what makes this the plan most
-likely to still be working in a year.
+Nothing about the shop page, the menu manager, Arabic or WhatsApp changed.
 
 ---
 
-## What it costs
+## What you need
+
+The two values from Turso:
 
 | | |
 |---|---|
-| Railway Hobby | $5 a month |
-| A domain name | about 10 to 15 a year, optional |
+| `TURSO_URL` | `libsql://tiramood-chelalba.aws-eu-west-1.turso.io` |
+| `TURSO_TOKEN` | the long `eyJhbGci...` line from `turso db tokens create` |
 
-The $5 is a subscription that also pays for the resources you use. A shop this
-size uses very little, so the $5 covers it.
-
----
-
-## Before you start
-
-You need two things, both free to make:
-
-1. A **GitHub** account. You already have one: `chelalba`.
-2. A **Railway** account, which you will make in step 2 by signing in with
-   GitHub.
-
-Have a card ready for the Railway subscription. Nothing else needs paying for.
+And a code for `OWNER_PASSWORD`, which you invent.
 
 ---
 
-## Step 1. Put the latest code on GitHub
+## Step 1. Push the rewrite
 
-**I have already done this for you.** Everything is committed and pushed.
-
-If you ever need to do it again after making changes:
-
-```bash
-git add -A
-git commit -m "describe what changed"
-git push
-```
+**I have already done this.** The code is on GitHub on the `sqlite-backend`
+branch.
 
 ---
 
-## Step 2. Make the Railway account
+## Step 2. Import the project into Vercel
 
-1. Go to **railway.com**
-2. Press **Login** and choose **Sign in with GitHub**
-3. Authorise it when GitHub asks
+1. Go to **vercel.com** and **Sign up with GitHub**
+2. **Add New** then **Project**
+3. Find **tera** in the list and press **Import**
+4. If it asks which branch, choose **sqlite-backend**
 
----
+On the configuration screen:
 
-## Step 3. Create the project from your repository
+| Setting | What to choose |
+|---|---|
+| Framework Preset | **Other** |
+| Build Command | leave empty |
+| Output Directory | leave empty |
+| Install Command | leave as it is |
 
-1. Press **New Project**
-2. Choose **Deploy from GitHub repo**
-3. If it asks for permission to see your repositories, allow it
-4. Pick **tera**
-
-Railway starts building straight away. It reads `package.json`, sees
-`npm start`, and runs your server. Let it finish.
-
-> **Branch.** If it asks which branch, choose the one holding this work. It is
-> called `sqlite-backend` unless you have merged it into `main`. You can change
-> this later under **Settings**, **Source**.
+Vercel serves `index.html` from the root by itself, and runs anything in
+`api/` as a function. That is why the folders are arranged this way.
 
 ---
 
-## Step 4. Add the storage. Do not skip this
+## Step 3. Add the three variables. Do not skip this
 
-This is the step that keeps your menu, ratings, notes and orders. Without it
-they are wiped every time the app restarts.
-
-1. In the project canvas, **right click** on empty space, or press **Ctrl+K**
-2. Choose **Volume**
-3. When it asks which service to attach it to, pick your app
-4. For the **mount path**, type exactly:
-
-```
-/app/data
-```
-
-That path matters. Railway builds your app into `/app`, and the database lives
-in `data` inside the project, so `/app/data` is where the file needs to be.
-Anything else and the shop starts empty every morning.
-
-Railway restarts the service. That is expected.
-
----
-
-## Step 5. Lock the menu manager
-
-On your own computer the manager is safe because only you can reach the
-machine. Online that is no longer true, so it needs a password.
-
-1. Open your service, then the **Variables** tab
-2. Press **New Variable** and add:
+Still on the same screen, open **Environment Variables** and add all three
+before deploying:
 
 | Name | Value |
 |---|---|
+| `TURSO_URL` | the `libsql://...` address |
+| `TURSO_TOKEN` | the long token |
 | `OWNER_PASSWORD` | a code only you know |
 
-Make it the same as the star code in `assets/js/data.js` so one number does
-both jobs. It is `1212` today, and you should change it to something harder
-before you share the address with anyone.
+Without the first two the site has no database and the menu will not load.
 
-Railway restarts the service when you save.
-
----
-
-## Step 6. Turn on the address
-
-1. Open your service, then **Settings**
-2. Find **Networking**, then **Public Networking**
-3. Press **Generate Domain**
-
-You get an address like `tera-production.up.railway.app`. That is your shop,
-live.
+Make `OWNER_PASSWORD` the same as the star code in `assets/js/data.js` so one
+number does both jobs. It is `1212` today, and you should change it to
+something harder before sharing the address.
 
 ---
 
-## Step 7. Check it works
+## Step 4. Deploy
 
-On your phone:
+Press **Deploy** and wait a minute or two. You get an address like
+`tera-chelalba.vercel.app`.
 
-1. Open the address. The menu should be there with the photos.
-2. Switch to Arabic with the button in the header.
-3. Add something to the basket and press Confirm. WhatsApp should open with
+The database is empty on the first visit, and the shop fills it from
+`assets/js/data.js` the first time anybody opens it. That happens by itself.
+
+---
+
+## Step 5. Check it, in this order
+
+1. Open the address. The 15 items and the photos should be there.
+2. Press **العربية**. The page should flip to Arabic, right to left.
+3. Put something in the basket and press Confirm. WhatsApp should open with
    the order written out, going to 213558529207.
-4. Tap the **star** at the end of the header, enter your code, and the menu
-   manager opens.
-5. Change a price, then open the shop on another phone. The new price should be
-   there.
+4. Tap the **star** at the end of the header and enter your `OWNER_PASSWORD`.
+5. Change a price and save.
+6. Open the shop on a different phone. **The new price should be there.**
 
-If step 5 works, everything is working.
+Step 6 is the one that proves it. If that works, everything works.
 
 ---
 
-## Step 8. Your own domain, optional
-
-`tera-production.up.railway.app` reads as a test. A proper address is worth the
-small yearly cost for a shop taking orders.
+## Step 6. Your own domain, optional
 
 1. Buy the name at Namecheap, Porkbun or Cloudflare
-2. In Railway: **Settings**, **Networking**, **Custom Domain**
-3. Railway shows you a `CNAME` record to add at the registrar
-4. Save it there and wait, usually minutes
+2. In Vercel: **Settings**, **Domains**, **Add**
+3. Vercel shows the records to enter at the registrar
+4. Save them and wait, usually minutes
 
-HTTPS is issued automatically.
+HTTPS is automatic.
 
 ---
 
 ## Living with it
 
 **Changing the menu.** Open the address on your phone, tap the star, enter the
-code. Add, edit, reorder, delete. Every change is live for customers
-immediately. No pushing, no computer.
+code. Add, edit, reorder, delete. Live for customers at once. No pushing.
 
-**Changing prices, photos, or the shop settings in `data.js`.** These are code,
-so they need a push from your computer:
+**Changing photos, prices in `data.js`, or the shop settings.** These are code:
 
 ```bash
 git add -A
@@ -195,58 +133,81 @@ git commit -m "New photos"
 git push
 ```
 
-Railway rebuilds and redeploys on its own within a minute or two.
+Vercel redeploys on its own within a minute.
 
-**Backups.** Your whole shop is one file on the volume. Right now there is no
-button to download it, because we removed it. The endpoint still exists, so
-visiting this address while logged in gives you everything as one file:
+**Backups.** Your data is on Turso now, not a file you can copy. While logged
+in as the owner, this address gives you everything as one file:
 
 ```
 https://your-address/api/backup
 ```
 
-Ask me and I will put the button back in the manager, which is easier to
-remember than a URL. For a shop holding real orders I would.
+Turso also has its own snapshots. Worth reading once before you need it.
+
+---
+
+## Still works on your own computer
+
+```bash
+npm start
+```
+
+With no `TURSO_URL` in your environment it uses `data/tera.db` as before, so
+you can try things out without touching the live shop.
+
+To point your computer at the live database instead:
+
+```bash
+TURSO_URL="libsql://..." TURSO_TOKEN="ey..." npm start
+```
 
 ---
 
 ## If something goes wrong
 
-**The site shows an error instead of the menu.** Open the service in Railway
-and read the **Deploy Logs**. The most likely cause is the Node version: this
-project needs Node 22 or newer because SQLite is built into it. `package.json`
-asks for that, but if the log says SQLite is missing, add a variable
-`NIXPACKS_NODE_VERSION` set to `22`.
+**The menu will not load and the page says so.** The two Turso variables are
+missing or wrong. Vercel: **Settings**, **Environment Variables**. After
+changing them you must **Redeploy** from the Deployments tab; saving alone
+does not restart anything.
 
-**The menu is empty after a restart.** The volume is mounted at the wrong path.
-It must be exactly `/app/data`. Fix it in the volume settings.
+**The manager will not accept the code.** What you type must match
+`OWNER_PASSWORD` exactly.
 
-**The manager will not let you in.** The code you type must match
-`OWNER_PASSWORD` in Railway's Variables tab.
+**Everything else.** Vercel: **Deployments**, open the latest, read the
+**Functions** log. The error will be there.
+
+---
+
+## One thing I could not test
+
+Every endpoint was tested against a real SQLite database through the same
+client library, and all of it passes. What could not be tested from here is
+that same code talking to Turso **over the network**, because that needs your
+token and it is not mine to use.
+
+The difference is transport only, and the library is built for it, so I expect
+it to work. But the first deploy is the real test. If the menu does not load,
+send me the Vercel function log and it will be a quick fix.
 
 ---
 
 ## The other plans, for reference
 
-Both give up something you said you need, so they are here only for context.
-
-- **[HOSTING-EASY.md](HOSTING-EASY.md)** is free and takes ten minutes, but
-  the menu can only be changed by editing a file and pushing, and ratings and
-  notes stop being shared.
-- **[HOSTING-vercel-turso.md](HOSTING-vercel-turso.md)** is free and keeps
-  everything, but needs WSL, a command line tool, and the server rewritten into
-  serverless functions.
+- **[HOSTING-EASY.md](HOSTING-EASY.md)** Netlify, free, ten minutes, but the
+  menu can only be changed by editing a file and pushing.
+- **[HOSTING-vercel-turso.md](HOSTING-vercel-turso.md)** the earlier notes,
+  written before the rewrite existed.
 
 ---
 
 ## Quick reference
 
 ```
-Host          Railway, from the GitHub repository
-Cost          $5 a month
-Volume        mount at /app/data           <- the important one
-Variable      OWNER_PASSWORD
-Address       Settings, Networking, Generate Domain
-Menu edits    from your phone, live immediately
-Code changes  git push, Railway redeploys
+Host          Vercel, from the GitHub repository, branch sqlite-backend
+Data          Turso
+Variables     TURSO_URL, TURSO_TOKEN, OWNER_PASSWORD
+Framework     Other, no build command
+Owner page    https://your-address/pages/owner.html
+Menu edits    from your phone, live at once
+Code changes  git push
 ```
