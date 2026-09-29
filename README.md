@@ -1,33 +1,84 @@
-# Tera, cake shop website
+# TiraMood
 
-Two pages. `index.html` is what customers see. `owner.html` is where you change
-the menu. Plain HTML, CSS and JavaScript, no build step and no framework. Open
-either file in a browser and it works.
+A tiramisu and cake shop: a shop page in English and Arabic, a menu manager,
+and orders that arrive on WhatsApp. A small Node server and one SQLite file.
+No framework, no npm packages and no environment file. SQLite is built into
+Node itself, so there is nothing to install beyond Node.
 
 ```
-index.html          the page customers see
-owner.html          the menu manager, for you
-privacy.html        what the site stores
-terms.html          ordering, notice, allergies
-assets/css/style.css
-assets/js/data.js   shop settings and the menu   <- the file you edit
-assets/js/sprite.js every drawing and icon, shared by both pages
-assets/js/store.js  reading and writing saved data
-assets/js/main.js   the shop page behaviour
-assets/js/owner.js  the menu manager behaviour
-assets/img/         favicon, and where your photos go
+index.html          the shop, the only page in the root
+package.json
+start.bat           double click this on Windows to run the shop
+HOSTING.md          putting it online with Vercel and Turso
+README.md
+
+pages/
+  owner.html        the menu manager, for you
+  privacy.html      what the site stores
+  terms.html        ordering, notice, allergies
+
+assets/
+  css/style.css
+  js/data.js        shop settings and the starting menu   <- the file you edit
+  js/i18n.js        every word of the site, English and Arabic
+  js/sprite.js      the drawings and icons
+  js/store.js       the pages talking to the server
+  js/main.js        the shop page
+  js/owner.js       the menu manager
+  img/              the logo, the icons and the product photos
+
+server/
+  index.js          serves the pages and answers /api
+  db.js             every line of SQL, and the only file a hosted database changes
+
+design/             the original photos and the reference images, not served
+
+data/               tera.db, the whole shop, created on first run
 ```
 
-`owner.html` is not linked from the shop page, so customers will not stumble
-onto it. Bookmark it. It carries a `noindex` tag so search engines skip it,
-but that is not a lock. If the site is public and you want the page kept
-private, either leave it off the server and run it from your own computer, or
-put a password on it through your host.
+## Running it
+
+You need Node 22 or newer. Check with `node --version`.
+
+**On Windows, double click `start.bat`.** A black window opens and stays open
+while the site runs. Closing that window stops the site.
+
+Or from a terminal in this folder:
+
+```bash
+npm start
+```
+
+Either way it prints the address to open, like this:
+
+```
+  TiraMood is running
+  Shop      http://localhost:5500/
+  Manager   http://localhost:5500/pages/owner.html
+```
+
+**Use the address it prints.** If something else on your computer is already
+using port 5500, and Visual Studio Code often is, the server moves to 5501 or
+5502 and says so. The pages only work at that address.
+
+> Opening `index.html` by double clicking it will not work any more. The pages
+> now ask a server for the menu, and a file opened straight from the folder has
+> no server to ask. The page will say so if you try.
+
+The first run creates `data/tera.db` and fills the menu with the items written
+in `assets/js/data.js`. After that the database is in charge, and `data.js` is
+only used for the shop settings and as the list the **Back to the original
+menu** button restores.
+
+There is no build step. Change a file, reload the page.
+
+> Node 22 and 23 keep SQLite behind a flag. The server notices and restarts
+> itself with the flag on, so you do not have to remember it.
 
 ## Change these before you share the site
 
-Everything is in `assets/js/data.js`, at the top. The lines marked `[CHANGE]`
-are placeholders and will not work as they are.
+All in `assets/js/data.js`, at the top. The lines marked `[CHANGE]` are
+placeholders and will not work as they are.
 
 | Setting | What to put |
 |---|---|
@@ -39,112 +90,100 @@ are placeholders and will not work as they are.
 | `name`, `kind` | The shop name shown in the header and footer |
 | `hours`, `notice` | Shown under the hero and in the contact section |
 
-Until the WhatsApp number is set, pressing Confirm shows a message saying so
-instead of opening a broken chat.
+The WhatsApp number is already set to `213558529207`. Change it here if that
+is ever wrong, and note there is also `ownerCode`, the number the star at the
+end of the header asks for.
 
-## Changing the menu
+## Who can change the menu
 
-Two ways. Use the menu manager for everyday changes, and the file when you want
-those changes to reach customers.
+With no `OWNER_PASSWORD` set, the menu can only be changed from the computer
+the server is running on. That is why nothing needs configuring while you work
+on your own machine.
 
-### The menu manager, owner.html
+The moment the site is on the internet that is not enough, because every
+visitor now reaches the server from somewhere else and the check no longer
+means anything. Set `OWNER_PASSWORD` and the menu manager asks for it:
 
-Open it and you get the whole menu as a list. **Add an item** opens an editor
-with a live preview of the card exactly as customers will see it. You pick one
-of six drawings, a colour, a price and a description. The arrows beside each
-row move an item up or down, which is the order it appears on the shop page.
-**Edit** opens the same editor with **Delete** at the bottom, which needs two
-taps so nothing goes by accident.
-
-Renaming an item is safe. Each item keeps a fixed id behind the scenes, and
-star ratings hang off that id, so they survive a new name or a new price.
-
-Two things to know:
-
-- Changes are saved in the browser you are using. You will see them on the shop
-  page on that same device straight away, even in another tab. Someone else's
-  phone still gets the menu from `assets/js/data.js`.
-- **Back to the original menu** throws your changes away and returns to what is
-  written in the file. It also takes two taps.
-
-### Making the changes real, section 02 of owner.html
-
-**Copy the menu code** puts the whole `MENU` list on your clipboard as code.
-Open `assets/js/data.js`, delete the old `const MENU = [ ... ];` block, paste,
-save, and upload the site. That is the moment customers see it.
-
-**Download data.js** gives you a complete replacement file instead, with your
-settings and menu already in it. It is the quicker route, but it does not carry
-over the comments in the original file, so keep a copy of the old one.
-
-### Editing the file by hand
-
-`MENU` in `assets/js/data.js`. One entry per item:
-
-```js
-{
-  id: 'honey-medovik',          // must be unique, used to store ratings
-  name: 'Honey cake',
-  category: 'cakes',            // cakes | pies | cookies | cupcakes
-  price: 3000,                  // a plain number, no currency
-  serves: 'Serves 8',
-  desc: 'Eight thin honey layers with sour cream between them.',
-  illo: 'cake',                 // cake | drip | pie | tart | cookie | cupcake
-  tint: '#e3c08c',              // colour of the drawing
-  photo: ''
-}
+```bash
+OWNER_PASSWORD="something long and private" npm start
 ```
 
-Adding a category means adding it to `CATEGORIES` too.
+On Windows PowerShell:
+
+```powershell
+$env:OWNER_PASSWORD = "something long and private"; npm start
+```
+
+Customers are never asked for it. Browsing, rating, leaving notes and ordering
+all stay open.
+
+## The menu manager
+
+`pages/owner.html` shows the whole menu as a list. **Add an item** opens an editor
+with a live preview of the card exactly as customers will see it: name,
+category, price, size, description, one of six drawings and a colour. The
+arrows move an item up or down, which is the order on the shop page. **Edit**
+opens the same editor with **Delete** at the bottom, which takes two taps.
+
+Every change is written to the database as you save it, so a customer opening
+the shop on their own phone sees it straight away.
+
+Renaming is safe. Each item keeps a fixed id underneath and star ratings hang
+off that id, so a new name or a new price keeps the stars. Deleting an item
+does throw its ratings away, which is why that one needs two taps.
+
+**Back to the original menu** replaces the whole menu with the list in
+`data.js`. Ratings and notes are not touched.
+
+**Download a backup** gives you a JSON file with the menu, the ratings, the
+notes and every order.
 
 ## Using real photos
 
 The drawings are there so the site looks finished without stock images. To use
-your own photos, put the file in `assets/img/` and name it in the item:
+your own, put the file in `assets/img/` and give its path in the editor's
+**Photo** field, for example `/assets/img/honey-cake.jpg`. The drawing is
+replaced by the photo. Mixing photos and drawings is fine.
 
-```js
-photo: 'assets/img/honey-cake.jpg'
-```
+## What is in the database
 
-The drawing is then replaced by the photo. Square or slightly landscape photos
-fit best. Do this for one item or for all of them, mixing the two is fine.
+| Table | Holds |
+|---|---|
+| `items` | the menu, in the order you arranged it |
+| `ratings` | one row per item per device, so a second tap replaces your vote |
+| `comments` | the notes customers leave |
+| `orders`, `order_lines` | a copy of every order sent to WhatsApp |
 
-## Where ratings, notes and orders go
+Orders reach you as a real WhatsApp message. The rows are your own record of
+them.
 
-They are saved in the visitor's own browser, under the keys `tera:menu`,
-`tera:ratings`, `tera:comments`, `tera:orders` and `tera:cart`. The owner page
-reads and writes the same keys.
+To look inside, any SQLite tool opens `data/tera.db`. DB Browser for SQLite is
+free and needs no setup.
 
-This is worth understanding: browser storage is per device. A rating left on
-one phone is not visible on another phone, and clearing browser data erases it.
-It is enough to run the site and to build the owner page against, but if you
-want one shared list of ratings and notes for the whole shop, that needs a
-server. The four groups of functions at the bottom of `assets/js/store.js` are
-the only places that would have to change.
+## Backups
 
-Orders do not depend on this. An order reaches you as a WhatsApp message, which
-is real and arrives on your phone. The saved copy is only a local record.
+The whole shop is one file. Copy `data/tera.db` somewhere safe and that is a
+complete backup. Do it while the server is stopped, or use **Download a
+backup** in the menu manager, which is safe at any time.
+
+`data/` is in `.gitignore`, so the database is never committed.
+
+---
+
+# Putting it online
+
+Two plans, depending on how much setup you want:
+
+- **[HOSTING-EASY.md](HOSTING-EASY.md)** puts the shop online in about ten
+  minutes with no command line and no database. Ratings and customer notes
+  stop being shared. WhatsApp ordering is unaffected.
+- **[HOSTING.md](HOSTING.md)** is the full version: Vercel for the site, Turso
+  for the data, both free, more setup and a code change first.
 
 ## Still to do
 
-- The owner page handles the menu. Orders, star ratings and the notes customers
-  leave are all being stored already, but there is no screen for reading them
-  yet. That is the obvious next piece.
-- `apple-touch-icon.png`, a 180 by 180 PNG for iPhone home screens. The SVG
-  favicon already works everywhere else. Export one from
-  `assets/img/favicon.svg` and drop it in `assets/img/`.
-- A domain. The site is a folder of files, so any static host will serve it:
-  Netlify, Cloudflare Pages, GitHub Pages. Buy a domain, point its A or CNAME
-  record at whichever host you pick, and switch HTTPS on there.
-- Read `privacy.html` and `terms.html` and correct anything that does not match
-  how you actually work. Both pages carry a note saying so.
-
-## Viewing it locally
-
-Double clicking `index.html` works. To serve it over a local address instead:
-
-```bash
-python -m http.server 5500
-```
-
-Then open http://localhost:5500
+- Orders, star ratings and the notes customers leave are all stored, and there
+  are endpoints for reading them (`/api/orders`, `/api/comments`), but the menu
+  manager has no screen for them yet.
+- The menu manager and the privacy and terms pages are English only. The shop
+  page itself is fully bilingual.

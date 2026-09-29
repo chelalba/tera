@@ -1,7 +1,7 @@
 /* ===============================================================
    Tera Home Bakery, menu manager
-   Adds, changes, reorders and removes items on the menu, and writes
-   the result back out as code for assets/js/data.js.
+   Adds, changes, reorders and removes items on the menu. Every
+   change goes to the server and is live for customers at once.
    =============================================================== */
 
 (function () {
@@ -26,9 +26,11 @@
   ];
 
   const state = {
-    menu: TeraStore.menu(),
+    menu: [],
     editingId: null,     /* null while adding a new item */
-    draft: null
+    draft: null,
+    busy: false,
+    offline: false
   };
 
   /* ---------- helpers ---------- */
@@ -60,19 +62,6 @@
     return CATEGORIES.filter(c => c.id !== 'all');
   }
 
-  function slug(text) {
-    return String(text).toLowerCase().trim()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 40) || 'item';
-  }
-
-  function freeId(base) {
-    let id = base, n = 2;
-    while (state.menu.some(p => p.id === id)) { id = base + '-' + n; n++; }
-    return id;
-  }
-
   let toastTimer;
   function toast(message) {
     const el = $('#toast');
@@ -82,18 +71,40 @@
     toastTimer = setTimeout(() => el.classList.remove('is-on'), 2600);
   }
 
+
+  /* a photo may be written with or without the leading slash; the
+     manager lives one folder down, so it needs the absolute form */
+  function photoUrl(value) {
+    const v = String(value || '').trim();
+    if (!v) return '';
+    if (/^(https?:)?\/\//.test(v) || v.charAt(0) === '/') return v;
+    return '/' + v.replace(/^\.?\//, '');
+  }
+
   function mediaMarkup(item) {
     if (item.photo) {
-      return '<img src="' + esc(item.photo) + '" alt="">';
+      return '<img src="' + esc(photoUrl(item.photo)) + '" alt="">';
     }
     return '<svg style="--illo-tint:' + esc(item.tint || '#f0dcc2') + '" viewBox="0 0 200 150" ' +
            'aria-hidden="true"><use href="#i-' + esc(item.illo || 'cake') + '"/></svg>';
   }
 
-  function save() {
-    TeraStore.saveMenu(state.menu);
+  /* every change goes to the server, then the list is drawn from
+     whatever the server says the menu now is */
+  function afterChange(menu) {
+    state.menu = menu || TeraStore.menu();
     renderList();
-    renderCode();
+    return state.menu;
+  }
+
+  function failed(err) {
+    if (err && err.status === 401) {
+      toast('The server did not accept that. Enter the owner password first.');
+      showLock(true);
+    } else {
+      toast('That did not save. ' + (err && err.message ? err.message : ''));
+    }
+    renderList();
   }
 
   /* two-step buttons, so nothing is deleted on one stray tap */
@@ -122,7 +133,6 @@
     const list = $('#itemList');
     $('#itemCount').textContent = state.menu.length;
     $('#itemEmpty').hidden = state.menu.length > 0;
-    $('#resetMenu').hidden = !TeraStore.menuIsEdited();
 
     $('#itemBreak').textContent = realCategories()
       .map(c => state.menu.filter(p => p.category === c.id).length + ' ' + c.label.toLowerCase())
@@ -137,6 +147,7 @@
           '<p class="item-meta">' + esc(categoryLabel(item.category)) +
             (item.serves ? ' <span aria-hidden="true">/</span> ' + esc(item.serves) : '') +
             (item.photo ? ' <span aria-hidden="true">/</span> photo' : '') +
+            (item.name_ar ? '' : ' <span class="needs-ar">no Arabic</span>') +
           '</p>' +
         '</div>' +
         '<p class="item-price">' + money(item.price) + '</p>' +
@@ -167,7 +178,10 @@
         if (to < 0 || to >= state.menu.length) return;
         const [item] = state.menu.splice(index, 1);
         state.menu.splice(to, 0, item);
-        save();
+        renderList();                       /* move now, confirm after */
+        TeraStore.reorderMenu(state.menu.map(p => p.id))
+          .then(afterChange)
+          .catch(failed);
         return;
       }
 
@@ -180,7 +194,8 @@
   function blankItem() {
     return {
       id: '', name: '', category: realCategories()[0].id, price: 1000,
-      serves: '', desc: '', illo: 'cake', tint: TINTS[0], photo: ''
+      serves: '', desc: '', name_ar: '', serves_ar: '', desc_ar: '',
+      illo: 'cake', tint: TINTS[0], photo: ''
     };
   }
 
@@ -212,6 +227,9 @@
     $('#fServes').value = item.serves || '';
     $('#fDesc').value = item.desc || '';
     $('#fPhoto').value = item.photo || '';
+    $('#fNameAr').value = item.name_ar || '';
+    $('#fServesAr').value = item.serves_ar || '';
+    $('#fDescAr').value = item.desc_ar || '';
     $('#fDescCount').textContent = (item.desc || '').length;
     $('#fTint').value = item.tint || TINTS[0];
     markPickers(item);
@@ -237,6 +255,9 @@
       price: Number($('#fPrice').value),
       serves: $('#fServes').value.trim(),
       desc: $('#fDesc').value.trim(),
+      name_ar: $('#fNameAr').value.trim(),
+      serves_ar: $('#fServesAr').value.trim(),
+      desc_ar: $('#fDescAr').value.trim(),
       illo: state.draft.illo,
       tint: state.draft.tint,
       photo: $('#fPhoto').value.trim()
@@ -267,8 +288,8 @@
     $('#deleteItem').classList.remove('is-armed');
     $('#editorError').hidden = true;
     $('#editorId').textContent = isNew
-      ? 'The name you type becomes this item id.'
-      : 'Item id: ' + item.id + '. Ratings are kept against it, so renaming is safe.';
+      ? ''
+      : 'Renaming is safe. The stars customers gave this item stay with it.';
 
     fillForm(state.draft);
     syncPreview();
@@ -291,34 +312,58 @@
       error.hidden = false; $('#fPrice').focus(); return;
     }
     error.hidden = true;
+    if (state.busy) return;
+    state.busy = true;
+    $('#saveItem').disabled = true;
 
-    if (state.editingId === null) {
-      draft.id = freeId(slug(draft.name));
-      state.menu.push(draft);
-      toast(draft.name + ' is on the menu.');
-    } else {
-      const index = state.menu.findIndex(p => p.id === state.editingId);
-      draft.id = state.editingId;
-      state.menu[index] = draft;
-      toast(draft.name + ' is saved.');
-    }
+    const adding = state.editingId === null;
+    const request = adding
+      ? TeraStore.createItem(draft)
+      : TeraStore.updateItem(state.editingId, draft);
 
-    save();
-    hideDrawer();
+    request.then(() => {
+      afterChange();
+      hideDrawer();
+      toast(draft.name + (adding
+        ? ' is on the shop now, customers can see it.'
+        : ' is saved. The shop is showing the new details.'));
+    }).catch(err => {
+      if (err.status === 401) {
+        error.textContent = 'The server did not accept that. Enter the owner password first.';
+        error.hidden = false;
+        showLock(true);
+      } else {
+        error.textContent = 'That did not save. ' + err.message;
+        error.hidden = false;
+      }
+    }).then(() => {
+      state.busy = false;
+      $('#saveItem').disabled = false;
+    });
   }
 
   function deleteItem() {
-    const index = state.menu.findIndex(p => p.id === state.editingId);
-    if (index < 0) return;
-    const name = state.menu[index].name;
-    state.menu.splice(index, 1);
-    save();
-    hideDrawer();
-    toast(name + ' is off the menu.');
+    const item = state.menu.find(p => p.id === state.editingId);
+    if (!item) return;
+    TeraStore.deleteItem(item.id).then(() => {
+      afterChange();
+      hideDrawer();
+      toast(item.name + ' is off the menu.');
+    }).catch(failed);
   }
 
   function wireEditor() {
-    $('#addItem').addEventListener('click', () => openEditor(null));
+    $('#addItem').addEventListener('click', () => {
+      /* still visible when the shop cannot be reached, so say why
+         rather than opening an editor that could not save anything */
+      if (state.offline) {
+        const box = $('.load-error');
+        if (box) box.scrollIntoView({ block: 'center' });
+        toast('Not connected to the shop yet. See the note above the list.');
+        return;
+      }
+      openEditor(null);
+    });
     $('#saveItem').addEventListener('click', saveItem);
 
     $('#deleteItem').addEventListener('click', e => {
@@ -396,130 +441,52 @@
     });
   }
 
-  /* ---------- writing the code back out ---------- */
 
-  function quote(text) {
-    return "'" + String(text || '')
-      .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\\'")
-      .replace(/\r?\n/g, ' ') + "'";
-  }
+  /* ---------- the original menu ---------- */
 
-  function menuCode() {
-    const body = state.menu.map(p => [
-      '  {',
-      '    id: ' + quote(p.id) + ',',
-      '    name: ' + quote(p.name) + ',',
-      '    category: ' + quote(p.category) + ',',
-      '    price: ' + (Number(p.price) || 0) + ',',
-      '    serves: ' + quote(p.serves) + ',',
-      '    desc: ' + quote(p.desc) + ',',
-      '    illo: ' + quote(p.illo) + ', tint: ' + quote(p.tint) + ', photo: ' + quote(p.photo),
-      '  }'
-    ].join('\n')).join(',\n');
-
-    return 'const MENU = [\n' + body + '\n];\n';
-  }
-
-  function shopCode() {
-    const keys = ['name', 'kind', 'whatsapp', 'currency', 'currencyBefore',
-                  'phone', 'email', 'instagram', 'facebook', 'hours', 'notice'];
-    const body = keys.map(k => {
-      const value = typeof SHOP[k] === 'boolean' ? SHOP[k] : quote(SHOP[k]);
-      return '  ' + k + ': ' + value;
-    }).join(',\n');
-    return 'const SHOP = {\n' + body + '\n};\n';
-  }
-
-  function categoriesCode() {
-    const body = CATEGORIES
-      .map(c => '  { id: ' + quote(c.id) + ', label: ' + quote(c.label) + ' }')
-      .join(',\n');
-    return 'const CATEGORIES = [\n' + body + '\n];\n';
-  }
-
-  function wholeFile() {
-    return [
-      '/* ---------------------------------------------------------------',
-      '   SHOP SETTINGS AND MENU',
-      '   Written by the menu manager on ' + new Date().toLocaleString('en-GB') + '.',
-      '',
-      '   whatsapp must be the full international number, digits only,',
-      '   with no plus sign and no spaces.',
-      '---------------------------------------------------------------- */',
-      '',
-      shopCode(),
-      categoriesCode(),
-      menuCode()
-    ].join('\n');
-  }
-
-  function renderCode() {
-    $('#codeText').textContent = menuCode();
-  }
-
-  function copyText(text, done) {
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(text).then(done, () => fallback());
-    } else {
-      fallback();
-    }
-    function fallback() {
-      const box = document.createElement('textarea');
-      box.value = text;
-      box.setAttribute('readonly', '');
-      box.style.position = 'fixed';
-      box.style.opacity = '0';
-      document.body.appendChild(box);
-      box.select();
-      let ok = false;
-      try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
-      document.body.removeChild(box);
-      if (ok) done();
-      else {
-        $('#codeBox').hidden = false;
-        $('#toggleCode').setAttribute('aria-expanded', 'true');
-        $('#toggleCode').textContent = 'Hide the code';
-        toast('Copying was blocked. The code is shown below, select it and copy.');
-      }
-    }
-  }
-
-  function wirePublish() {
-    $('#copyCode').addEventListener('click', () => {
-      copyText(menuCode(), () => toast('Menu code copied. Paste it into assets/js/data.js.'));
-    });
-
-    $('#downloadCode').addEventListener('click', () => {
-      const blob = new Blob([wholeFile()], { type: 'text/javascript' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'data.js';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast('data.js downloaded. Put it in the assets/js folder.');
-    });
-
-    $('#toggleCode').addEventListener('click', e => {
-      const box = $('#codeBox');
-      const show = box.hidden;
-      box.hidden = !show;
-      e.currentTarget.setAttribute('aria-expanded', String(show));
-      e.currentTarget.textContent = show ? 'Hide the code' : 'Show the code';
-    });
-
+  function wireReset() {
     $('#resetMenu').addEventListener('click', e => {
-      const label = e.currentTarget.querySelector('span') || e.currentTarget;
-      arm(e.currentTarget, label, 'Tap again, this clears your changes',
+      const button = e.currentTarget;
+      const label = button.querySelector('span') || button;
+      arm(button, label, 'Tap again, this replaces the whole menu',
           'Back to the original menu', () => {
-        TeraStore.forgetMenu();
-        state.menu = TeraStore.menu();
-        renderList();
-        renderCode();
-        toast('The menu is back to the one in data.js.');
+        TeraStore.resetMenu().then(menu => {
+          afterChange(menu);
+          toast('The menu is back to the one you started with.');
+        }).catch(failed);
+      });
+    });
+  }
+
+  /* ---------- owner password ---------- */
+
+  function showLock(show) {
+    $('#ownerLock').hidden = !show;
+    document.body.classList.toggle('is-locked', show);
+  }
+
+  function wireLock() {
+    $('#ownerLockForm').addEventListener('submit', e => {
+      e.preventDefault();
+      const field = $('#ownerKey');
+      const error = $('#ownerLockError');
+      TeraStore.setOwnerKey(field.value);
+      field.value = '';
+
+      TeraStore.load().then(() => {
+        if (TeraStore.isOwner()) {
+          error.hidden = true;
+          showLock(false);
+          afterChange();
+          toast('Unlocked. You can change the menu now.');
+        } else {
+          TeraStore.setOwnerKey('');
+          error.textContent = 'That password was not right.';
+          error.hidden = false;
+        }
+      }).catch(err => {
+        error.textContent = 'Could not reach the server. ' + err.message;
+        error.hidden = false;
       });
     });
   }
@@ -527,10 +494,47 @@
   /* ---------- start ---------- */
 
   buildPickers();
-  renderList();
   wireList();
   wireEditor();
   wireDrawer();
-  wirePublish();
-  renderCode();
+  wireReset();
+  wireLock();
+
+  /* The toolbar is never taken away. Losing the Add button because
+     something else went wrong leaves nothing to work with and no clue
+     why, so the problem is shown above it instead. */
+  function showPageError(err) {
+    state.offline = true;
+
+    const box = document.createElement('div');
+    box.className = 'load-error';
+
+    const title = document.createElement('h3');
+    title.textContent = 'The menu is not loading';
+
+    const why = document.createElement('p');
+    why.textContent = 'The shop is not answering. Check that it is running, then reload this page.';
+    box.append(title, why);
+
+    $('.tool-row').before(box);
+    $('#itemEmpty').hidden = true;
+  }
+
+  /* Landed on an address that has no shop behind it. Look for the
+     real one on the neighbouring ports and go there, rather than
+     leaving somebody to work out the address for themselves. */
+  function rescueOrExplain(err) {
+    if (!err.wrongServer) return showPageError(err);
+
+    toast('Looking for the shop...');
+    TeraStore.findShopOrigin().then(origin => {
+      if (!origin || origin === location.origin) return showPageError(err);
+      location.replace(origin + location.pathname + location.search + location.hash);
+    }).catch(() => showPageError(err));
+  }
+
+  TeraStore.load().then(() => {
+    afterChange();
+    showLock(!TeraStore.isOwner());
+  }).catch(rescueOrExplain);
 })();

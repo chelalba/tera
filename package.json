@@ -1,0 +1,16 @@
+{
+  "name": "tiramood",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TiraMood: shop page in English and Arabic, menu manager, WhatsApp orders, SQLite.",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.18.0"
+  }
+}

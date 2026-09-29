@@ -223,9 +223,17 @@ a { color: inherit; }
   display: grid; place-items: center;
 }
 .hero-art svg { width: 100%; max-width: 380px; height: auto; color: var(--brown); }
+.hero-art { padding: 0; overflow: hidden; }
+.hero-art img {
+  width: 100%; height: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: var(--r-lg);
+}
 
 .hero-facts {
   display: flex; flex-wrap: wrap; gap: 1rem 2.5rem;
+  justify-content: center;
   margin-top: clamp(2rem, 5vw, 3.5rem);
   padding-top: 1.5rem; padding-bottom: 1.5rem;
   border-top: 1px solid var(--line);
@@ -873,4 +881,259 @@ a.contact-item:hover { transform: translateY(-2px); }
   .field-pair { grid-template-columns: 1fr; gap: 0; }
   .preview-wrap { max-width: 200px; }
   .publish-actions .btn { flex: 1; justify-content: center; }
+}
+
+/* ---------- owner password gate ---------- */
+
+.owner-lock {
+  background: var(--cream-deep);
+  border-bottom: 1px solid var(--line);
+  padding: 1.5rem 0;
+}
+.lock-form {
+  display: flex; align-items: flex-end; gap: .75rem; flex-wrap: wrap;
+}
+.lock-form .field { margin-bottom: 0; min-width: 230px; }
+.owner-lock .field-hint { margin-top: .6rem; max-width: 60ch; }
+.owner-lock .field-error { margin: .6rem 0 0; }
+
+/* With no password entered the menu can be read but not changed.
+   The buttons stay where they are and go quiet, because a control
+   that vanishes just looks like the page is broken. */
+body.is-locked .tool-actions,
+body.is-locked .row-actions {
+  opacity: .4;
+  pointer-events: none;
+}
+
+/* ---------- when the server cannot be reached ---------- */
+
+.load-error {
+  max-width: 62ch;
+  margin: 1rem auto 0;
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-left: 3px solid #a14b3a;
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 1.6rem 1.75rem;
+}
+.load-error h3 { font-size: 1.15rem; margin-bottom: .6rem; }
+.load-error p { color: var(--muted); font-size: .94rem; }
+.load-error ol {
+  list-style: decimal; padding-left: 1.3rem; margin-top: 1rem;
+  color: var(--muted); font-size: .92rem;
+}
+.load-error li { margin-bottom: .35rem; }
+
+/* ---------- the real logo ---------- */
+
+img.brand-mark {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+}
+.footer-brand img.brand-mark {
+  width: 40px; height: 40px;
+  /* the mark is dark on dark down here, so give it an edge */
+  box-shadow: 0 0 0 1px rgba(250, 243, 232, .35);
+}
+
+/* ===============================================================
+   Arabic and right to left
+   =============================================================== */
+
+.lang-btn {
+  font-family: var(--font-body);
+  font-size: .82rem; font-weight: 500;
+  letter-spacing: .02em;
+  padding: .45rem .8rem;
+  margin-inline-end: .25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: transparent;
+  color: var(--brown);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .18s var(--ease), background-color .18s var(--ease);
+}
+.lang-btn:hover { border-color: var(--brown); background: var(--cream); }
+
+/* Arabic needs its own faces: the Latin ones have no Arabic glyphs */
+:root[lang="ar"] {
+  --font-display: "Cairo", "Tajawal", "Segoe UI", sans-serif;
+  --font-body: "Tajawal", "Jost", "Segoe UI", system-ui, sans-serif;
+}
+/* the headline carries the shop, so it is set heavy */
+:root[lang="ar"] .hero h1 { font-weight: 700; }
+:root[lang="ar"] h2, :root[lang="ar"] h3 { font-weight: 600; }
+:root[lang="ar"] body { line-height: 1.8; }
+:root[lang="ar"] h1,
+:root[lang="ar"] h2,
+:root[lang="ar"] h3 { letter-spacing: 0; line-height: 1.35; }
+
+/* uppercase and wide tracking do nothing for Arabic, they only hurt it */
+:root[lang="ar"] .eyebrow,
+:root[lang="ar"] .brand-kind,
+:root[lang="ar"] .chip,
+:root[lang="ar"] .sort select,
+:root[lang="ar"] .contact-label,
+:root[lang="ar"] .field label,
+:root[lang="ar"] .field legend,
+:root[lang="ar"] .editor-label,
+:root[lang="ar"] .total-row span {
+  text-transform: none;
+  letter-spacing: 0;
+}
+:root[lang="ar"] .eyebrow { font-size: .8rem; }
+:root[lang="ar"] .brand-kind { font-size: .74rem; }
+
+/* ---------- the mirrored bits ---------- */
+
+[dir="rtl"] .brand { margin-right: 0; margin-left: auto; }
+[dir="rtl"] .nav a::after { transform-origin: right; }
+[dir="rtl"] .cart-count { right: auto; left: 2px; }
+[dir="rtl"] .card-serves { left: auto; right: .7rem; }
+[dir="rtl"] .notice { border-left: 0; border-right: 3px solid var(--brown); border-radius: var(--r) 0 0 var(--r); }
+[dir="rtl"] .load-error { border-left: 0; border-right: 3px solid #a14b3a; border-radius: var(--r) 0 0 var(--r); }
+[dir="rtl"] .legal ul { padding-left: 0; padding-right: 1.2rem; }
+[dir="rtl"] .load-error ol { padding-left: 0; padding-right: 1.3rem; }
+[dir="rtl"] .inline-icon { margin-right: 0; margin-left: .3rem; }
+[dir="rtl"] .sort::after { right: auto; left: 1.15rem; }
+[dir="rtl"] .sort select { padding: .62rem 1.4rem .62rem 2.6rem; }
+[dir="rtl"] .field-radio label { margin-right: 0; margin-left: 1.25rem; }
+
+/* the basket slides in from the other side */
+[dir="rtl"] .drawer { right: auto; left: 0; transform: translateX(-100%); }
+[dir="rtl"] .drawer.is-open { transform: translateX(0); }
+
+/* prices and the order reference stay left to right inside Arabic */
+[dir="rtl"] .price,
+[dir="rtl"] .item-price,
+[dir="rtl"] .cart-price,
+[dir="rtl"] .total-row strong,
+[dir="rtl"] .contact-value {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+[dir="rtl"] .price,
+[dir="rtl"] .total-row strong { text-align: right; }
+
+/* stars read the same way round in both languages */
+[dir="rtl"] .stars { flex-direction: row-reverse; }
+
+@media (max-width: 560px) {
+  .lang-btn { padding: .4rem .55rem; font-size: .78rem; }
+}
+
+/* ---------- the Arabic block in the editor ---------- */
+
+.arabic-block {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 1rem 1.1rem 1.1rem;
+  margin-bottom: 1.1rem;
+}
+.arabic-block legend {
+  padding: 0 .4rem;
+  font-size: .76rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+}
+.arabic-block .sub-label {
+  display: block;
+  font-size: .75rem; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted);
+  margin: .7rem 0 .3rem;
+}
+.arabic-block .sub-label:first-of-type { margin-top: 0; }
+.arabic-block input,
+.arabic-block textarea {
+  font-family: "Tajawal", var(--font-body);
+  font-size: .95rem;
+  padding: .7rem .9rem;
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--white); color: var(--brown);
+  width: 100%;
+}
+.arabic-block textarea { resize: vertical; min-height: 78px; }
+.arabic-block .field-hint { margin-top: .6rem; }
+
+.needs-ar {
+  display: inline-block;
+  margin-inline-start: .35rem;
+  padding: .05rem .4rem;
+  border-radius: 3px;
+  background: var(--cream-deep);
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+/* ---------- the owner star, and the code it asks for ---------- */
+
+.star-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px;
+  padding: 0; border: 0; border-radius: var(--r);
+  background: transparent;
+  color: var(--brown);
+  cursor: pointer;
+  opacity: .5;
+  transition: opacity .18s var(--ease), background-color .18s var(--ease);
+}
+.star-btn svg { width: 17px; height: 17px; fill: currentColor; }
+.star-btn:hover { opacity: 1; background: var(--cream); }
+
+.code-dialog {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(58, 37, 26, .4);
+  opacity: 0;
+  transition: opacity .2s var(--ease);
+}
+.code-dialog.is-on { opacity: 1; }
+
+.code-panel {
+  width: 100%; max-width: 320px;
+  background: var(--white);
+  border-radius: var(--r-lg);
+  padding: 1.6rem 1.5rem 1.4rem;
+  box-shadow: 0 18px 50px rgba(58, 37, 26, .22);
+}
+.code-panel h2 { font-size: 1.2rem; margin-bottom: 1rem; }
+
+.code-panel input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 1.35rem;
+  letter-spacing: .4em;
+  text-align: center;
+  padding: .7rem .6rem;
+  border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--white); color: var(--ink);
+}
+.code-panel input:focus { border-color: var(--brown); outline: none; }
+
+.code-error { margin-top: .7rem; font-size: .85rem; color: #a14b3a; }
+
+.code-actions { display: flex; gap: .6rem; margin-top: 1.2rem; }
+.code-actions .btn { flex: 1; padding: .7rem 1rem; }
+
+[dir="rtl"] .code-actions { flex-direction: row-reverse; }
+
+/* ---------- the header has a lot in it on a small phone ---------- */
+
+@media (max-width: 460px) {
+  .header-inner { gap: .5rem; min-height: 64px; }
+  .brand { gap: .5rem; }
+  img.brand-mark { width: 34px; height: 34px; }
+  .brand-name { font-size: 1.1rem; }
+  /* the second line is the first thing to go, the name carries it */
+  .brand-kind { display: none; }
+  .header-actions { gap: 0; }
+  .icon-btn { width: 36px; height: 36px; }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .star-btn { width: 30px; height: 30px; }
+  .star-btn svg { width: 15px; height: 15px; }
+  .lang-btn { padding: .35rem .5rem; font-size: .76rem; margin-inline-end: 0; }
 }

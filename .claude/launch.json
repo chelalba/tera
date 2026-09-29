@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "tera",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "5500"],
-      "port": 5500
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 5500,
+      "autoPort": true
     }
   ]
 }
