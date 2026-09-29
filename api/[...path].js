@@ -14,6 +14,38 @@
 
 const { handle, corsHeadersFor } = require('../server/routes.js');
 
+/* Which endpoint was asked for, with /api taken off the front.
+
+   Read from the url rather than from req.query.path. The name of this
+   file makes Vercel hand the segments over as a list, but that is the
+   dynamic route plumbing and it has arrived empty in practice, which
+   left every call looking like a request for nothing and answered
+   with "no such endpoint". The url is always there, and it is the
+   same thing the local server reads, so both behave alike. */
+function routeOf(req) {
+  let path = String(req.url || '/').split('?')[0];
+
+  if (path === '/api' || path.indexOf('/api/') === 0) {
+    path = path.slice('/api'.length);
+  }
+  if (!path || path.charAt(0) !== '/') path = '/' + path;
+
+  /* /comments and /comments/ are the same endpoint */
+  if (path.length > 1 && path.charAt(path.length - 1) === '/') {
+    path = path.slice(0, -1);
+  }
+
+  /* Still nothing? Fall back to the segments, in case a future
+     runtime routes in a way the url does not show. */
+  if (path === '/' && req.query && req.query.path) {
+    const parts = req.query.path;
+    const list = Array.isArray(parts) ? parts : [parts];
+    if (list.length) path = '/' + list.map(encodeURIComponent).join('/');
+  }
+
+  return path;
+}
+
 module.exports = async function (req, res) {
   const origin = req.headers.origin;
   const cors = corsHeadersFor(origin);
@@ -26,11 +58,7 @@ module.exports = async function (req, res) {
     return res.end();
   }
 
-  /* Vercel gives the catch-all as an array of segments, so
-     /api/menu/honey-cake arrives as ['menu', 'honey-cake'] */
-  const parts = req.query && req.query.path;
-  const list = Array.isArray(parts) ? parts : (parts ? [parts] : []);
-  const route = '/' + list.map(encodeURIComponent).join('/');
+  const route = routeOf(req);
 
   /* Vercel parses JSON bodies already, but a string can still turn up
      when the content type was not set */
@@ -41,7 +69,7 @@ module.exports = async function (req, res) {
 
   try {
     const result = await handle({
-      route: route === '/' ? '/' : route,
+      route: route,
       method: req.method,
       body: body || {},
       headers: req.headers,
