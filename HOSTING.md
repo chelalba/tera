@@ -152,14 +152,35 @@ Turso also has its own snapshots. Worth reading once before you need it.
 npm start
 ```
 
-With no `TURSO_URL` in your environment it uses `data/tera.db` as before, so
-you can try things out without touching the live shop.
+Settings for your own machine live in **`.env`** beside the project. It is
+already there, with every value empty, which means `npm start` uses
+`data/tera.db` on this computer. That is the safe way to try things: the live
+shop is not touched.
 
-To point your computer at the live database instead:
+`.env` is in `.gitignore`, so it is never committed and never reaches Vercel
+or GitHub. **`.env.example`** is the copy that is committed, as a record of
+which names exist. Never put a real token in that one.
+
+To work against the **live** database from your own computer, open `.env` and
+fill in the two Turso lines:
+
+```
+TURSO_URL=libsql://tiramood-chelalba.aws-eu-west-1.turso.io
+TURSO_TOKEN="the long eyJhbGci... line"
+```
+
+Get them again any time from Ubuntu:
 
 ```bash
-TURSO_URL="libsql://..." TURSO_TOKEN="ey..." npm start
+turso db show tiramood
 ```
+
+```bash
+turso db tokens create tiramood
+```
+
+The banner on start tells you which database you are on, so there is no
+guessing.
 
 ---
 
