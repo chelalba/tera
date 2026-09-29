@@ -38,7 +38,7 @@ const db = require('./db.js');
 const PORT = Number(process.env.PORT) || 5500;
 const HOST = process.env.HOST || '0.0.0.0';
 const OWNER_PASSWORD = process.env.OWNER_PASSWORD || '';
-const ROOT = __dirname;
+const ROOT = path.join(__dirname, '..');
 
 /* ---------------------------------------------------------------
    The seed. data.js stays the one place the starting menu and the
@@ -120,6 +120,9 @@ function cleanItem(input) {
     price,
     serves: String(input.serves || '').trim().slice(0, 40),
     desc: String(input.desc || '').trim().slice(0, 400),
+    name_ar: String(input.name_ar || '').trim().slice(0, 80),
+    serves_ar: String(input.serves_ar || '').trim().slice(0, 40),
+    desc_ar: String(input.desc_ar || '').trim().slice(0, 400),
     illo: /^[a-z]{3,12}$/.test(input.illo || '') ? input.illo : 'cake',
     tint: /^#[0-9a-fA-F]{3,8}$/.test(input.tint || '') ? input.tint : '#f0dcc2',
     photo: String(input.photo || '').trim().slice(0, 200)
@@ -130,11 +133,32 @@ function cleanItem(input) {
    The API
 ---------------------------------------------------------------- */
 
+/* A page opened from another server on this machine, typically an
+   editor's Live Server on a neighbouring port, is allowed to ask us
+   questions. That is what lets such a page find the real shop and
+   send the reader there. Only localhost is allowed, never the open
+   internet. */
+function allowLocalOrigin(req, res) {
+  const origin = req.headers.origin;
+  if (!origin) return;
+  if (!/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(origin)) return;
+  res.setHeader('access-control-allow-origin', origin);
+  res.setHeader('access-control-allow-headers', 'content-type, x-device, x-owner-key');
+  res.setHeader('access-control-allow-methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('vary', 'origin');
+}
+
 async function api(req, res, url) {
   const route = url.pathname.replace(/^\/api/, '') || '/';
   const method = req.method;
   const device = deviceOf(req);
   const owner = isOwner(req);
+
+  allowLocalOrigin(req, res);
+  if (method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
 
   /* what the page needs on load, in one round trip */
   /* One number, so a shop page left open can notice a changed menu
@@ -270,7 +294,7 @@ const TYPES = {
 
 /* only these may be read over http, so the database, the server
    source and anything else in the folder stay private */
-const PUBLIC = ['assets', 'index.html', 'owner.html', 'privacy.html', 'terms.html', 'robots.txt'];
+const PUBLIC = ['assets', 'pages', 'index.html', 'robots.txt'];
 
 function serveFile(req, res, url) {
   let rel = decodeURIComponent(url.pathname).replace(/^\/+/, '');
@@ -357,9 +381,9 @@ function listen(port, triesLeft) {
 server.once('listening', () => {
   const where = 'http://localhost:' + server.address().port;
   console.log('');
-  console.log('  Tera is running');
+  console.log('  ' + seed.SHOP.name + ' is running');
   console.log('  Shop      ' + where + '/');
-  console.log('  Manager   ' + where + '/owner.html');
+  console.log('  Manager   ' + where + '/pages/owner.html');
   console.log('  Database  ' + db.file);
   console.log('');
   if (OWNER_PASSWORD) {

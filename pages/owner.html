@@ -3,35 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Menu manager, Tera Home Bakery</title>
-<meta name="description" content="Add, change, reorder and remove the items on the Tera Home Bakery menu.">
+<title>Menu manager, TiraMood</title>
+<meta name="description" content="Add, change, reorder and remove the items on the TiraMood menu.">
 <meta name="robots" content="noindex">
 <meta name="theme-color" content="#4a2e20">
-<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=3">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Jost:wght@300;400;500&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/style.css?v=21">
 </head>
 <body>
 
 <!-- every drawing and icon on the site, shared with the shop page -->
-<script src="assets/js/sprite.js?v=3"></script>
+<script src="/assets/js/sprite.js?v=21"></script>
 
 <div class="page">
 
   <!-- ===================== header ===================== -->
   <header class="site-header">
     <div class="container header-inner">
-      <a class="brand" href="index.html">
-        <svg class="brand-mark" aria-hidden="true"><use href="#i-cat"/></svg>
+      <a class="brand" href="/">
+        <img class="brand-mark" src="/assets/img/logo.png" alt="TiraMood" width="44" height="44">
         <span class="brand-text">
-          <span class="brand-name">Tera</span>
+          <span class="brand-name">TiraMood</span>
           <span class="brand-kind">Menu manager</span>
         </span>
       </a>
       <nav class="nav nav-static" aria-label="Main">
-        <a href="index.html">
+        <a href="/">
           <svg class="inline-icon" aria-hidden="true"><use href="#i-back"/></svg>
           View the shop
         </a>
@@ -50,8 +51,7 @@
         <button class="btn btn-primary" type="submit">Unlock</button>
       </form>
       <p class="field-error" id="ownerLockError" hidden></p>
-      <p class="field-hint">This is the OWNER_PASSWORD set on the server. Until it is entered the
-        menu can be read but not changed.</p>
+      <p class="field-hint">Until the password is entered the menu can be read but not changed.</p>
     </div>
   </div>
 
@@ -90,28 +90,30 @@
       </div>
     </section>
 
-    <!-- ===================== publishing ===================== -->
-    <section class="section section-cream" id="publish">
+    <!-- ===================== a letter ===================== -->
+    <section class="section section-cream" id="letter">
       <div class="container">
         <header class="section-head section-head-left">
           <p class="section-num">02</p>
-          <h2 class="section-title">Where your shop lives</h2>
+          <h2 class="section-title">Keep going sweetie</h2>
         </header>
 
         <div class="notice">
-          <p><strong>Your changes are already live.</strong> Everything you do here is written
-          into the shop database the moment you save it. A customer opening the shop on their own
-          phone sees the new menu straight away. There is nothing to upload.</p>
-          <p>The whole shop sits in one file on the server, <code>data/tera.db</code>. Keep a copy
-          of it somewhere safe, or take a backup here. The backup holds the menu, the star
-          ratings, the notes customers left and every order.</p>
-        </div>
+          <p>My sweet angel Tesnim I love you so much, I hope we stay together I
+          can&rsquo;t imagine my life without you, you are my everything.</p>
 
-        <div class="publish-actions">
-          <button class="btn btn-primary" type="button" id="downloadBackup">
-            <svg aria-hidden="true"><use href="#i-download"/></svg>
-            Download a backup
-          </button>
+          <p>I wanna keep living only to be with you, you make me feel special for
+          the first time that I feel that I&rsquo;m really important to someone, I can
+          talk with you for hours and never gets bored of you.</p>
+
+          <p>I love you more than words could ever describe. I believe in you, and I
+          can already see your pretty face smiling in a brighter future cz you
+          deserve it.</p>
+
+          <p>No matter where life takes us, I hope we&rsquo;ll always find our way back
+          to each other. You will always have a piece of my heart.</p>
+
+          <p><strong>your biggest super fan, Rounak</strong></p>
         </div>
       </div>
     </section>
@@ -121,8 +123,8 @@
   <!-- ===================== footer ===================== -->
   <footer class="site-footer">
     <div class="container footer-legal">
-      <p>Tera Home Bakery, menu manager</p>
-      <p class="legal-links"><a href="index.html">Shop page</a><span aria-hidden="true">/</span><a href="privacy.html">Privacy</a><span aria-hidden="true">/</span><a href="terms.html">Terms</a></p>
+      <p>TiraMood, menu manager</p>
+      <p class="legal-links"><a href="/">Shop page</a><span aria-hidden="true">/</span><a href="/pages/privacy.html">Privacy</a><span aria-hidden="true">/</span><a href="/pages/terms.html">Terms</a></p>
     </div>
   </footer>
 </div>
@@ -188,6 +190,21 @@
         <input id="fServes" type="text" maxlength="40" autocomplete="off">
       </div>
 
+      <fieldset class="field arabic-block">
+        <legend>Arabic <span class="optional">shown when a customer picks Arabic</span></legend>
+
+        <label class="sub-label" for="fNameAr">Name</label>
+        <input id="fNameAr" type="text" maxlength="80" dir="rtl" lang="ar" autocomplete="off">
+
+        <label class="sub-label" for="fServesAr">Size</label>
+        <input id="fServesAr" type="text" maxlength="40" dir="rtl" lang="ar" autocomplete="off">
+
+        <label class="sub-label" for="fDescAr">Description</label>
+        <textarea id="fDescAr" rows="3" maxlength="400" dir="rtl" lang="ar"></textarea>
+
+        <span class="field-hint">Leave a box empty and the English is shown instead.</span>
+      </fieldset>
+
       <div class="field">
         <label for="fDesc">Description</label>
         <textarea id="fDesc" rows="3" maxlength="240"></textarea>
@@ -214,7 +231,7 @@
           Photo instead of the drawing <span class="optional">optional</span>
         </label>
         <input id="fPhoto" type="text" placeholder="assets/img/honey-cake.jpg" autocomplete="off">
-        <span class="field-hint">Put the photo file in the assets/img folder, then write its name here.</span>
+        <span class="field-hint">Leave this empty to use a drawing instead of a photograph.</span>
       </div>
 
       <p class="field-error" id="editorError" hidden></p>
@@ -238,8 +255,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/js/data.js?v=3"></script>
-<script src="assets/js/store.js?v=3"></script>
-<script src="assets/js/owner.js?v=3"></script>
+<script src="/assets/js/data.js?v=21"></script>
+<script src="/assets/js/store.js?v=21"></script>
+<script src="/assets/js/owner.js?v=21"></script>
 </body>
 </html>

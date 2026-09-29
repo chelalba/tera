@@ -16,7 +16,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = path.join(__dirname, '..', 'data');
 const DB_FILE = process.env.TERA_DB || path.join(DATA_DIR, 'tera.db');
 
 fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
@@ -93,6 +93,17 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS ix_lines_order  ON order_lines (order_id);
 `);
 
+/* Databases made before Arabic was added need the new columns. Adding
+   them here keeps an existing shop working without losing anything. */
+(function addArabicColumns() {
+  const have = db.prepare('PRAGMA table_info(items)').all().map(c => c.name);
+  [['name_ar', ''], ['descr_ar', ''], ['serves_ar', '']].forEach(([col]) => {
+    if (have.indexOf(col) === -1) {
+      db.exec("ALTER TABLE items ADD COLUMN " + col + " TEXT NOT NULL DEFAULT ''");
+    }
+  });
+})();
+
 const now = () => Date.now();
 
 /* ---------------------------------------------------------------
@@ -129,6 +140,9 @@ function rowToItem(row) {
     price: row.price,
     serves: row.serves,
     desc: row.descr,
+    name_ar: row.name_ar || '',
+    serves_ar: row.serves_ar || '',
+    desc_ar: row.descr_ar || '',
     illo: row.illo,
     tint: row.tint,
     photo: row.photo
@@ -166,10 +180,12 @@ function freeId(base) {
 function createItem(input) {
   const id = freeId(slug(input.name));
   db.prepare(`INSERT INTO items
-      (id, name, category, price, serves, descr, illo, tint, photo, position, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      (id, name, category, price, serves, descr, illo, tint, photo, position, created_at,
+       name_ar, serves_ar, descr_ar)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(id, input.name, input.category, input.price, input.serves, input.desc,
-         input.illo, input.tint, input.photo, nextPosition(), now());
+         input.illo, input.tint, input.photo, nextPosition(), now(),
+         input.name_ar || '', input.serves_ar || '', input.desc_ar || '');
   bumpMenuVersion();
   return getItem(id);
 }
@@ -179,10 +195,12 @@ function updateItem(id, input) {
   if (!found) return null;
   db.prepare(`UPDATE items SET
       name = ?, category = ?, price = ?, serves = ?, descr = ?,
-      illo = ?, tint = ?, photo = ?
+      illo = ?, tint = ?, photo = ?,
+      name_ar = ?, serves_ar = ?, descr_ar = ?
       WHERE id = ?`)
     .run(input.name, input.category, input.price, input.serves, input.desc,
-         input.illo, input.tint, input.photo, id);
+         input.illo, input.tint, input.photo,
+         input.name_ar || '', input.serves_ar || '', input.desc_ar || '', id);
   bumpMenuVersion();
   return getItem(id);
 }
@@ -319,13 +337,15 @@ function isEmpty() {
 
 function seedItems(menu) {
   const insert = db.prepare(`INSERT INTO items
-      (id, name, category, price, serves, descr, illo, tint, photo, position, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+      (id, name, category, price, serves, descr, illo, tint, photo, position, created_at,
+       name_ar, serves_ar, descr_ar)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   db.exec('BEGIN');
   try {
     menu.forEach((m, i) => {
       insert.run(m.id, m.name, m.category, m.price, m.serves || '', m.desc || '',
-                 m.illo || 'cake', m.tint || '#f0dcc2', m.photo || '', i, now());
+                 m.illo || 'cake', m.tint || '#f0dcc2', m.photo || '', i, now(),
+                 m.name_ar || '', m.serves_ar || '', m.desc_ar || '');
     });
     db.exec('COMMIT');
   } catch (err) {

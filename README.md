@@ -1,24 +1,39 @@
-# Tera, cake shop website
+# TiraMood
 
-A small Node server, two pages and one SQLite file. No framework, no npm
-packages, no accounts to sign up for and no environment file. SQLite is built
-into Node itself, so there is nothing to install beyond Node.
+A tiramisu and cake shop: a shop page in English and Arabic, a menu manager,
+and orders that arrive on WhatsApp. A small Node server and one SQLite file.
+No framework, no npm packages and no environment file. SQLite is built into
+Node itself, so there is nothing to install beyond Node.
 
 ```
+index.html          the shop, the only page in the root
+package.json
 start.bat           double click this on Windows to run the shop
-server.js           serves the pages and answers /api
-db.js               every line of SQL, and the only file a hosted database changes
-data/tera.db        the whole shop, created on first run
-index.html          the page customers see
-owner.html          the menu manager, for you
-privacy.html        what the site stores
-terms.html          ordering, notice, allergies
-assets/js/data.js   shop settings, and the starting menu   <- the file you edit
-assets/js/store.js  the pages talking to the server
-assets/js/sprite.js every drawing and icon
-assets/js/main.js   the shop page
-assets/js/owner.js  the menu manager
-assets/img/         favicon, and where your photos go
+HOSTING.md          putting it online with Vercel and Turso
+README.md
+
+pages/
+  owner.html        the menu manager, for you
+  privacy.html      what the site stores
+  terms.html        ordering, notice, allergies
+
+assets/
+  css/style.css
+  js/data.js        shop settings and the starting menu   <- the file you edit
+  js/i18n.js        every word of the site, English and Arabic
+  js/sprite.js      the drawings and icons
+  js/store.js       the pages talking to the server
+  js/main.js        the shop page
+  js/owner.js       the menu manager
+  img/              the logo, the icons and the product photos
+
+server/
+  index.js          serves the pages and answers /api
+  db.js             every line of SQL, and the only file a hosted database changes
+
+design/             the original photos and the reference images, not served
+
+data/               tera.db, the whole shop, created on first run
 ```
 
 ## Running it
@@ -37,9 +52,9 @@ npm start
 Either way it prints the address to open, like this:
 
 ```
-  Tera is running
+  TiraMood is running
   Shop      http://localhost:5500/
-  Manager   http://localhost:5500/owner.html
+  Manager   http://localhost:5500/pages/owner.html
 ```
 
 **Use the address it prints.** If something else on your computer is already
@@ -75,15 +90,9 @@ placeholders and will not work as they are.
 | `name`, `kind` | The shop name shown in the header and footer |
 | `hours`, `notice` | Shown under the hero and in the contact section |
 
-**The WhatsApp number is the one that stops orders working.** Until it is a
-real number, pressing Confirm shows
-
-> The shop WhatsApp number has not been set yet. Open assets/js/data.js and
-> fill in "whatsapp".
-
-That is the guard doing its job rather than a fault. Everything else about the
-order, the basket, the form and the record kept in the database, already works.
-Put your number in and the order opens in WhatsApp ready to send.
+The WhatsApp number is already set to `213558529207`. Change it here if that
+is ever wrong, and note there is also `ownerCode`, the number the star at the
+end of the header asks for.
 
 ## Who can change the menu
 
@@ -110,7 +119,7 @@ all stay open.
 
 ## The menu manager
 
-`owner.html` shows the whole menu as a list. **Add an item** opens an editor
+`pages/owner.html` shows the whole menu as a list. **Add an item** opens an editor
 with a live preview of the card exactly as customers will see it: name,
 category, price, size, description, one of six drawings and a colour. The
 arrows move an item up or down, which is the order on the shop page. **Edit**
@@ -133,7 +142,7 @@ notes and every order.
 
 The drawings are there so the site looks finished without stock images. To use
 your own, put the file in `assets/img/` and give its path in the editor's
-**Photo** field, for example `assets/img/honey-cake.jpg`. The drawing is
+**Photo** field, for example `/assets/img/honey-cake.jpg`. The drawing is
 replaced by the photo. Mixing photos and drawings is fine.
 
 ## What is in the database
@@ -161,110 +170,15 @@ backup** in the menu manager, which is safe at any time.
 
 ---
 
-# Hosting it for free
+# Putting it online
 
-The awkward part of SQLite is that it is a file, and most free hosting gives
-you a disk that is wiped every time the app restarts. Pick a plan below that
-keeps the file, or moves it somewhere that keeps it for you.
-
-Free tiers change. Check the current limits before you commit to one.
-
-## Plan A, Fly.io with a disk. Least work, code stays exactly as it is
-
-Fly gives your app a real volume, so `data/tera.db` survives restarts and
-nothing in this project changes.
-
-1. Install flyctl and sign in:
-   ```bash
-   curl -L https://fly.io/install.sh | sh
-   fly auth signup
-   ```
-2. From the project folder:
-   ```bash
-   fly launch --no-deploy
-   ```
-   Say no when it offers to add a database. It writes a `fly.toml`.
-3. Create the disk and point the app at it:
-   ```bash
-   fly volumes create tera_data --size 1
-   ```
-   In `fly.toml` add:
-   ```toml
-   [mounts]
-     source = "tera_data"
-     destination = "/data"
-
-   [env]
-     TERA_DB = "/data/tera.db"
-     PORT = "8080"
-   ```
-   `TERA_DB` is already read by `db.js`, so the database lands on the volume.
-4. Set the password and deploy:
-   ```bash
-   fly secrets set OWNER_PASSWORD="something long and private"
-   fly deploy
-   ```
-
-Cost: Fly is pay as you go rather than free, and a machine this small with a
-1 GB volume lands around two or three dollars a month. It is the least work and
-the fewest surprises. If it truly has to cost nothing, use Plan B.
-
-## Plan B, free forever, database moves to Turso
-
-Turso is hosted SQLite. Your app can then run on any free host, including ones
-that wipe the disk, because the data is no longer on that disk.
-
-1. Sign up at turso.tech, create a database, and copy its URL and token.
-2. Install the client and change **one file**:
-   ```bash
-   npm install @libsql/client
-   ```
-   In `db.js`, swap the two lines that open the database:
-   ```js
-   const { createClient } = require('@libsql/client');
-   const db = createClient({
-     url: process.env.TURSO_URL,
-     authToken: process.env.TURSO_TOKEN
-   });
-   ```
-   The SQL itself does not change. The calls become async, so
-   `db.prepare(...).get()` becomes `await db.execute(...)`. Everything that
-   needs touching is inside `db.js`, which is why it is the only file with SQL
-   in it.
-3. Deploy the app to Render, free web service, connected to your GitHub repo.
-   Build command `npm install`, start command `npm start`. Add three
-   environment variables in the Render dashboard: `TURSO_URL`, `TURSO_TOKEN`
-   and `OWNER_PASSWORD`.
-
-Cost: nothing. The catch is that a Render free service goes to sleep after
-about fifteen minutes with no visitors, so the first person to arrive waits
-roughly a minute for it to wake. For a bakery taking orders on WhatsApp that is
-usually survivable, but it is the reason Plan A exists.
-
-## Plan C, Cloudflare, free and always awake
-
-Cloudflare D1 is also SQLite, and Workers do not sleep. This is the best free
-result and the most work: Workers are not Node, so `server.js` has to be
-rewritten against the Workers API and D1 bindings rather than `node:http` and
-`node:sqlite`. `db.js` maps over almost directly because D1 speaks the same
-SQL. Worth it if the site gets busy and you want no cold starts.
-
-## Whichever you pick
-
-- Set `OWNER_PASSWORD`. Without it, on a public server, anyone who finds
-  `owner.html` can change your menu.
-- Put a real domain in front of it. A `.something.app` address says demo. Buy a
-  domain, point its records at the host, and switch HTTPS on there.
-- Take a backup before you change anything.
+That has its own file: **[HOSTING.md](HOSTING.md)**. It covers Vercel for the
+site, Turso for the data, both free, and what has to change in the code first.
 
 ## Still to do
 
-- Orders, star ratings and the notes customers leave are all being stored, and
-  there are endpoints for reading them (`/api/orders`, `/api/comments`), but
-  there is no screen in the menu manager for them yet. That is the obvious next
-  piece.
-- `apple-touch-icon.png`, a 180 by 180 PNG for iPhone home screens. The SVG
-  favicon already works everywhere else.
-- Read `privacy.html` and `terms.html` and correct anything that does not match
-  how you work. The privacy page still describes browser storage and needs
-  updating now that the data sits on a server.
+- Orders, star ratings and the notes customers leave are all stored, and there
+  are endpoints for reading them (`/api/orders`, `/api/comments`), but the menu
+  manager has no screen for them yet.
+- The menu manager and the privacy and terms pages are English only. The shop
+  page itself is fully bilingual.

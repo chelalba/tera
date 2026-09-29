@@ -71,9 +71,19 @@
     toastTimer = setTimeout(() => el.classList.remove('is-on'), 2600);
   }
 
+
+  /* a photo may be written with or without the leading slash; the
+     manager lives one folder down, so it needs the absolute form */
+  function photoUrl(value) {
+    const v = String(value || '').trim();
+    if (!v) return '';
+    if (/^(https?:)?\/\//.test(v) || v.charAt(0) === '/') return v;
+    return '/' + v.replace(/^\.?\//, '');
+  }
+
   function mediaMarkup(item) {
     if (item.photo) {
-      return '<img src="' + esc(item.photo) + '" alt="">';
+      return '<img src="' + esc(photoUrl(item.photo)) + '" alt="">';
     }
     return '<svg style="--illo-tint:' + esc(item.tint || '#f0dcc2') + '" viewBox="0 0 200 150" ' +
            'aria-hidden="true"><use href="#i-' + esc(item.illo || 'cake') + '"/></svg>';
@@ -137,6 +147,7 @@
           '<p class="item-meta">' + esc(categoryLabel(item.category)) +
             (item.serves ? ' <span aria-hidden="true">/</span> ' + esc(item.serves) : '') +
             (item.photo ? ' <span aria-hidden="true">/</span> photo' : '') +
+            (item.name_ar ? '' : ' <span class="needs-ar">no Arabic</span>') +
           '</p>' +
         '</div>' +
         '<p class="item-price">' + money(item.price) + '</p>' +
@@ -183,7 +194,8 @@
   function blankItem() {
     return {
       id: '', name: '', category: realCategories()[0].id, price: 1000,
-      serves: '', desc: '', illo: 'cake', tint: TINTS[0], photo: ''
+      serves: '', desc: '', name_ar: '', serves_ar: '', desc_ar: '',
+      illo: 'cake', tint: TINTS[0], photo: ''
     };
   }
 
@@ -215,6 +227,9 @@
     $('#fServes').value = item.serves || '';
     $('#fDesc').value = item.desc || '';
     $('#fPhoto').value = item.photo || '';
+    $('#fNameAr').value = item.name_ar || '';
+    $('#fServesAr').value = item.serves_ar || '';
+    $('#fDescAr').value = item.desc_ar || '';
     $('#fDescCount').textContent = (item.desc || '').length;
     $('#fTint').value = item.tint || TINTS[0];
     markPickers(item);
@@ -240,6 +255,9 @@
       price: Number($('#fPrice').value),
       serves: $('#fServes').value.trim(),
       desc: $('#fDesc').value.trim(),
+      name_ar: $('#fNameAr').value.trim(),
+      serves_ar: $('#fServesAr').value.trim(),
+      desc_ar: $('#fDescAr').value.trim(),
       illo: state.draft.illo,
       tint: state.draft.tint,
       photo: $('#fPhoto').value.trim()
@@ -270,8 +288,8 @@
     $('#deleteItem').classList.remove('is-armed');
     $('#editorError').hidden = true;
     $('#editorId').textContent = isNew
-      ? 'The name you type becomes this item id.'
-      : 'Item id: ' + item.id + '. Ratings are kept against it, so renaming is safe.';
+      ? ''
+      : 'Renaming is safe. The stars customers gave this item stay with it.';
 
     fillForm(state.draft);
     syncPreview();
@@ -424,42 +442,6 @@
   }
 
 
-  /* ---------- backup ---------- */
-
-  function wireBackup() {
-    $('#downloadBackup').addEventListener('click', e => {
-      const button = e.currentTarget;
-      button.disabled = true;
-      fetch('/api/backup', { headers: ownerHeaders() })
-        .then(res => {
-          if (!res.ok) throw new Error('the server said ' + res.status);
-          return res.text();
-        })
-        .then(text => {
-          const stamp = new Date().toISOString().slice(0, 10);
-          const blob = new Blob([text], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = 'tera-backup-' + stamp + '.json';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          setTimeout(() => URL.revokeObjectURL(url), 1000);
-          toast('Backup downloaded.');
-        })
-        .catch(err => toast('The backup failed. ' + err.message))
-        .then(() => { button.disabled = false; });
-    });
-  }
-
-  function ownerHeaders() {
-    const headers = { 'x-device': TeraStore.device() };
-    const key = TeraStore.ownerKey();
-    if (key) headers['x-owner-key'] = key;
-    return headers;
-  }
-
   /* ---------- the original menu ---------- */
 
   function wireReset() {
@@ -470,7 +452,7 @@
           'Back to the original menu', () => {
         TeraStore.resetMenu().then(menu => {
           afterChange(menu);
-          toast('The menu is back to the one in data.js.');
+          toast('The menu is back to the one you started with.');
         }).catch(failed);
       });
     });
@@ -515,7 +497,6 @@
   wireList();
   wireEditor();
   wireDrawer();
-  wireBackup();
   wireReset();
   wireLock();
 
@@ -529,32 +510,31 @@
     box.className = 'load-error';
 
     const title = document.createElement('h3');
-    title.textContent = err.wrongServer
-      ? 'This is not the shop address'
-      : 'The menu could not be loaded';
+    title.textContent = 'The menu is not loading';
 
     const why = document.createElement('p');
-    why.textContent = err.message;
+    why.textContent = 'The shop is not answering. Check that it is running, then reload this page.';
     box.append(title, why);
-
-    const how = document.createElement('ol');
-    [
-      'Open the tera folder and double click start.bat, or run npm start there.',
-      'It prints an address such as http://localhost:5502',
-      'Open that address, then add /owner.html to the end of it.'
-    ].forEach(step => {
-      const li = document.createElement('li');
-      li.textContent = step;
-      how.appendChild(li);
-    });
-    box.appendChild(how);
 
     $('.tool-row').before(box);
     $('#itemEmpty').hidden = true;
   }
 
+  /* Landed on an address that has no shop behind it. Look for the
+     real one on the neighbouring ports and go there, rather than
+     leaving somebody to work out the address for themselves. */
+  function rescueOrExplain(err) {
+    if (!err.wrongServer) return showPageError(err);
+
+    toast('Looking for the shop...');
+    TeraStore.findShopOrigin().then(origin => {
+      if (!origin || origin === location.origin) return showPageError(err);
+      location.replace(origin + location.pathname + location.search + location.hash);
+    }).catch(() => showPageError(err));
+  }
+
   TeraStore.load().then(() => {
     afterChange();
     showLock(!TeraStore.isOwner());
-  }).catch(showPageError);
+  }).catch(rescueOrExplain);
 })();

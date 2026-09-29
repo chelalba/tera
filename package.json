@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Tera Home Bakery: shop page, menu manager and a SQLite database.",
-  "main": "server.js",
+  "main": "server/index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server/index.js"
   },
   "engines": {
     "node": ">=22.5.0"

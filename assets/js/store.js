@@ -76,11 +76,7 @@ const TeraStore = (function () {
        server. Nothing can work, so say why in plain words instead of
        letting every call fail on its own. */
     if (location.protocol === 'file:') {
-      const err = new Error(
-        'This page was opened straight from the folder, so it cannot reach the shop. ' +
-        'Start the server first: open the tera folder, run start.bat (or npm start), ' +
-        'then go to the address it prints.'
-      );
+      const err = new Error('The shop is not reachable from here.');
       err.offline = true;
       return Promise.reject(err);
     }
@@ -97,7 +93,7 @@ const TeraStore = (function () {
     }
 
     return fetch('/api' + path, options).catch(() => {
-      const err = new Error('The shop server is not answering. Check the window you ran it in.');
+      const err = new Error('The shop is not answering just now.');
       err.offline = true;
       throw err;
     }).then(res =>
@@ -107,11 +103,7 @@ const TeraStore = (function () {
              Usually a plain file server such as the editor's Live
              Server, which serves the html and knows nothing of /api. */
           if (res.status === 404 && !data.error) {
-            const wrong = new Error(
-              'This address serves the pages but not the shop itself, so there is ' +
-              'no menu to load. Use the address the shop server prints when it ' +
-              'starts, which is usually a different port on localhost.'
-            );
+            const wrong = new Error('The shop is not answering at this address.');
             wrong.wrongServer = true;
             wrong.status = 404;
             throw wrong;
@@ -151,6 +143,30 @@ const TeraStore = (function () {
     return call('GET', '/menu-version')
       .then(data => Number(data.version) !== Number(cache.menuVersion))
       .catch(() => false);
+  }
+
+  /* Looking for the shop on a neighbouring port.
+
+     People open these pages from whatever is already serving the
+     folder, often an editor's Live Server, which hands over the html
+     but has no shop behind it. The server itself moves up a port when
+     one is busy, so rather than asking anybody to hunt for the right
+     address we knock on the likely doors and find it. */
+  function findShopOrigin() {
+    const host = location.hostname || 'localhost';
+    const here = Number(location.port) || (location.protocol === 'https:' ? 443 : 80);
+    const ports = [];
+    for (let p = 5500; p <= 5514; p++) { if (p !== here) ports.push(p); }
+
+    const tries = ports.map(port => {
+      const origin = 'http://' + host + ':' + port;
+      return fetch(origin + '/api/menu-version', { headers: { 'x-device': device() } })
+        .then(res => (res.ok ? res.json() : Promise.reject()))
+        .then(data => (typeof data.version === 'number' ? origin : Promise.reject()))
+        .catch(() => null);
+    });
+
+    return Promise.all(tries).then(found => found.find(Boolean) || null);
   }
 
   /* A direct line between the menu manager and any shop page open in
@@ -265,7 +281,7 @@ const TeraStore = (function () {
   function ownerNeedsKey() { return cache.ownerNeedsKey; }
 
   return {
-    load, uid, device,
+    load, uid, device, findShopOrigin,
     menu, menuChanged, onMenuChange, createItem, updateItem, deleteItem, reorderMenu, resetMenu,
     summary, myRating, rate,
     comments, addComment,

@@ -3,21 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tera Home Bakery, cakes baked to order</title>
+<title>TiraMood, cakes baked to order</title>
 <meta name="description" content="Small home bakery. Layer cakes, pies, cookies and cupcakes baked to order. Pick what you want and send the order on WhatsApp.">
 <meta name="theme-color" content="#4a2e20">
-<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/style.css?v=3">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Jost:wght@300;400;500&family=Cairo:wght@400;600;700&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/style.css?v=21">
 </head>
 <body>
 
 <!-- every drawing and icon on the site, shared with the owner page -->
-<script src="assets/js/sprite.js?v=3"></script>
+<script src="/assets/js/sprite.js?v=21"></script>
 
-<a class="skip-link" href="#menu">Skip to the menu</a>
+<a class="skip-link" href="#menu" data-i18n="skip">Skip to the menu</a>
 
 <div class="page">
 
@@ -25,29 +26,34 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="#top">
-        <svg class="brand-mark" aria-hidden="true"><use href="#i-cat"/></svg>
+        <img class="brand-mark" src="/assets/img/logo.png" alt="TiraMood" width="44" height="44">
         <span class="brand-text">
-          <span class="brand-name">Tera</span>
-          <span class="brand-kind">Home bakery</span>
+          <span class="brand-name">TiraMood</span>
+          <span class="brand-kind" data-i18n="brand.kind">Tiramisu and cakes</span>
         </span>
       </a>
 
       <nav class="nav" id="nav" aria-label="Main">
-        <a href="#menu">Menu</a>
-        <a href="#how">How to order</a>
-        <a href="#notes">Notes</a>
-        <a href="#contact">Contact</a>
+        <a href="#menu" data-i18n="nav.menu">Menu</a>
+        <a href="#how" data-i18n="nav.how">How to order</a>
+        <a href="#notes" data-i18n="nav.notes">Notes</a>
+        <a href="#contact" data-i18n="nav.contact">Contact</a>
       </nav>
 
       <div class="header-actions">
         <button class="icon-btn nav-toggle" type="button" id="navToggle" aria-expanded="false" aria-controls="nav">
           <svg aria-hidden="true"><use href="#i-menu"/></svg>
-          <span class="visually-hidden">Menu</span>
+          <span class="visually-hidden" data-i18n="nav.open">Menu</span>
         </button>
+        <button class="lang-btn" type="button" id="langToggle" lang="ar">العربية</button>
         <button class="icon-btn cart-btn" type="button" id="cartOpen">
           <svg aria-hidden="true"><use href="#i-bag"/></svg>
           <span class="cart-count" id="cartCount" hidden>0</span>
-          <span class="visually-hidden">Your basket</span>
+          <span class="visually-hidden" data-i18n="nav.basket">Your basket</span>
+        </button>
+        <button class="star-btn" type="button" id="ownerStar">
+          <svg aria-hidden="true"><use href="#i-star"/></svg>
+          <span class="visually-hidden" data-i18n="code.star">Shop owner</span>
         </button>
       </div>
     </div>
@@ -59,25 +65,24 @@
     <section class="hero">
       <div class="container hero-inner">
         <div class="hero-copy">
-          <p class="eyebrow">Baked to order</p>
-          <h1>Cakes made in a small kitchen, for the people who ordered them.</h1>
-          <p class="hero-lead">
+          <p class="eyebrow" data-i18n="hero.eyebrow">Layers of happiness</p>
+          <h1 data-i18n="hero.title">Tiramisu made the day you collect it.</h1>
+          <p class="hero-lead" data-i18n="hero.lead">
             Pick what you want from the menu, put it in your basket, and send the order
             straight to us on WhatsApp. We reply with a time to collect it.
           </p>
           <div class="hero-actions">
-            <a class="btn btn-primary" href="#menu">See the menu</a>
-            <a class="btn btn-ghost" href="#how">How ordering works</a>
+            <a class="btn btn-primary" href="#menu" data-i18n="hero.seeMenu">See the menu</a>
+            <a class="btn btn-ghost" href="#how" data-i18n="hero.howWorks">How ordering works</a>
           </div>
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <svg><use href="#i-hero"/></svg>
+        <div class="hero-art">
+          <img src="/assets/img/tiramisu.jpg" alt="A slice of tiramisu dusted with cocoa" width="900" height="1200">
         </div>
       </div>
       <ul class="hero-facts container">
         <li><svg aria-hidden="true"><use href="#i-clock"/></svg><span id="factHours"></span></li>
-        <li><svg aria-hidden="true"><use href="#i-chat"/></svg><span>Orders are taken on WhatsApp</span></li>
-        <li><svg aria-hidden="true"><use href="#i-check"/></svg><span id="factNotice"></span></li>
+        <li><svg aria-hidden="true"><use href="#i-chat"/></svg><span data-i18n="hero.whatsapp">Orders are taken on WhatsApp</span></li>
       </ul>
     </section>
 
@@ -86,8 +91,8 @@
       <div class="container">
         <header class="section-head">
           <p class="section-num">01</p>
-          <h2 class="section-title">Menu</h2>
-          <p class="section-sub">
+          <h2 class="section-title" data-i18n="menu.title">Menu</h2>
+          <p class="section-sub" data-i18n="menu.sub">
             Prices are for the whole cake or the whole box. Tap the stars to say what you
             thought of something you have tried.
           </p>
@@ -96,20 +101,20 @@
         <div class="catalog-controls">
           <div class="chips" id="chips" role="group" aria-label="Filter the menu"></div>
           <label class="sort">
-            <span class="visually-hidden">Sort the menu</span>
+            <span class="visually-hidden" data-i18n="menu.sortLabel">Sort the menu</span>
             <select id="sort">
-              <option value="default">Sort by</option>
-              <option value="rating">Best rated</option>
-              <option value="price-asc">Price, low to high</option>
-              <option value="price-desc">Price, high to low</option>
-              <option value="name">Name, A to Z</option>
+              <option value="default" data-i18n="sort.default">Sort by</option>
+              <option value="rating" data-i18n="sort.rating">Best rated</option>
+              <option value="price-asc" data-i18n="sort.priceAsc">Price, low to high</option>
+              <option value="price-desc" data-i18n="sort.priceDesc">Price, high to low</option>
+              <option value="name" data-i18n="sort.name">Name, A to Z</option>
             </select>
           </label>
         </div>
 
         <h3 class="grid-heading" id="gridHeading">Everything</h3>
         <div class="grid" id="grid"></div>
-        <p class="grid-empty" id="gridEmpty" hidden>Nothing in this part of the menu yet.</p>
+        <p class="grid-empty" id="gridEmpty" data-i18n="menu.empty" hidden>Nothing in this part of the menu yet.</p>
       </div>
     </section>
 
@@ -118,23 +123,23 @@
       <div class="container">
         <header class="section-head">
           <p class="section-num">02</p>
-          <h2 class="section-title">How to order</h2>
+          <h2 class="section-title" data-i18n="how.title">How to order</h2>
         </header>
         <ol class="steps">
           <li>
             <span class="step-num">1</span>
-            <h3>Fill your basket</h3>
-            <p>Add what you want from the menu. You can change the quantity in the basket at any time.</p>
+            <h3 data-i18n="how.1.title">Fill your basket</h3>
+            <p data-i18n="how.1.body">Add what you want from the menu. You can change the quantity in the basket at any time.</p>
           </li>
           <li>
             <span class="step-num">2</span>
-            <h3>Leave your details</h3>
-            <p>Your name, your phone number, and the day you want to collect the order.</p>
+            <h3 data-i18n="how.2.title">Leave your details</h3>
+            <p data-i18n="how.2.body">Your name, your phone number, and the day you want to collect the order.</p>
           </li>
           <li>
             <span class="step-num">3</span>
-            <h3>Send it on WhatsApp</h3>
-            <p>The button writes the whole order into a message. You press send, we reply to confirm.</p>
+            <h3 data-i18n="how.3.title">Send it on WhatsApp</h3>
+            <p data-i18n="how.3.body">The button writes the whole order into a message. You press send, we reply to confirm.</p>
           </li>
         </ol>
       </div>
@@ -145,23 +150,23 @@
       <div class="container">
         <header class="section-head">
           <p class="section-num">03</p>
-          <h2 class="section-title">Notes from the counter</h2>
-          <p class="section-sub">Tell us how it went, or ask for something that is not on the menu.</p>
+          <h2 class="section-title" data-i18n="notes.title">Notes from the counter</h2>
+          <p class="section-sub" data-i18n="notes.sub">Tell us how it went, or ask for something that is not on the menu.</p>
         </header>
 
         <div class="notes-layout">
           <form class="comment-form" id="commentForm" novalidate>
             <div class="field">
-              <label for="cName">Your name</label>
+              <label for="cName" data-i18n="notes.name">Your name</label>
               <input id="cName" name="name" type="text" maxlength="40" autocomplete="name" required>
             </div>
             <div class="field">
-              <label for="cText">Your note</label>
+              <label for="cText" data-i18n="notes.text">Your note</label>
               <textarea id="cText" name="text" rows="5" maxlength="600" required></textarea>
               <span class="field-count"><span id="cCount">0</span> / 600</span>
             </div>
             <p class="field-error" id="commentError" hidden></p>
-            <button class="btn btn-primary" type="submit">Leave the note</button>
+            <button class="btn btn-primary" type="submit" data-i18n="notes.send">Leave the note</button>
           </form>
 
           <div class="comment-side">
@@ -176,27 +181,27 @@
       <div class="container">
         <header class="section-head">
           <p class="section-num">04</p>
-          <h2 class="section-title">Get in touch</h2>
+          <h2 class="section-title" data-i18n="contact.title">Get in touch</h2>
         </header>
         <div class="contact-grid">
           <a class="contact-item" id="linkWhatsapp" href="#">
             <svg aria-hidden="true"><use href="#i-chat"/></svg>
-            <span class="contact-label">WhatsApp</span>
-            <span class="contact-value">Open a chat with us</span>
+            <span class="contact-label" data-i18n="contact.whatsapp">WhatsApp</span>
+            <span class="contact-value" data-i18n="contact.openChat">Open a chat with us</span>
           </a>
           <a class="contact-item" id="linkPhone" href="#">
             <svg aria-hidden="true"><use href="#i-phone"/></svg>
-            <span class="contact-label">Phone</span>
+            <span class="contact-label" data-i18n="contact.phone">Phone</span>
             <span class="contact-value" id="valPhone"></span>
           </a>
           <a class="contact-item" id="linkMail" href="#">
             <svg aria-hidden="true"><use href="#i-mail"/></svg>
-            <span class="contact-label">Email</span>
+            <span class="contact-label" data-i18n="contact.email">Email</span>
             <span class="contact-value" id="valMail"></span>
           </a>
           <div class="contact-item">
             <svg aria-hidden="true"><use href="#i-clock"/></svg>
-            <span class="contact-label">Open</span>
+            <span class="contact-label" data-i18n="contact.open">Open</span>
             <span class="contact-value" id="valHours"></span>
           </div>
         </div>
@@ -209,14 +214,14 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <nav class="footer-links" aria-label="Footer">
-        <a href="#menu">Menu</a>
-        <a href="#how">How to order</a>
-        <a href="#notes">Notes</a>
-        <a href="#contact">Contact</a>
+        <a href="#menu" data-i18n="nav.menu">Menu</a>
+        <a href="#how" data-i18n="nav.how">How to order</a>
+        <a href="#notes" data-i18n="nav.notes">Notes</a>
+        <a href="#contact" data-i18n="nav.contact">Contact</a>
       </nav>
       <a class="footer-brand" href="#top">
-        <svg class="brand-mark" aria-hidden="true"><use href="#i-cat"/></svg>
-        <span>Tera</span>
+        <img class="brand-mark" src="/assets/img/logo.png" alt="TiraMood" width="44" height="44">
+        <span>TiraMood</span>
       </a>
       <div class="footer-social">
         <a id="socInstagram" href="#" aria-label="Instagram"><svg aria-hidden="true"><use href="#i-instagram"/></svg></a>
@@ -224,8 +229,8 @@
       </div>
     </div>
     <div class="container footer-legal">
-      <p id="copyLine">Tera Home Bakery</p>
-      <p class="legal-links"><a href="privacy.html">Privacy</a><span aria-hidden="true">/</span><a href="terms.html">Terms</a></p>
+      <p id="copyLine">TiraMood</p>
+      <p class="legal-links"><a href="/pages/privacy.html" data-i18n="footer.privacy">Privacy</a><span aria-hidden="true">/</span><a href="/pages/terms.html" data-i18n="footer.terms">Terms</a></p>
     </div>
   </footer>
 </div>
@@ -235,39 +240,39 @@
 
 <aside class="drawer" id="drawer" aria-hidden="true" aria-label="Your basket">
   <div class="drawer-head">
-    <h2>Your basket</h2>
+    <h2 data-i18n="basket.title">Your basket</h2>
     <button class="icon-btn" type="button" id="cartClose">
       <svg aria-hidden="true"><use href="#i-close"/></svg>
-      <span class="visually-hidden">Close the basket</span>
+      <span class="visually-hidden" data-i18n="basket.close">Close the basket</span>
     </button>
   </div>
 
   <div class="drawer-body" id="drawerBody">
     <ul class="cart-lines" id="cartLines"></ul>
-    <p class="cart-empty" id="cartEmpty">Your basket is empty. Add something from the menu.</p>
+    <p class="cart-empty" id="cartEmpty" data-i18n="basket.empty">Your basket is empty. Add something from the menu.</p>
 
     <form class="order-form" id="orderForm" novalidate hidden>
-      <h3>Your details</h3>
+      <h3 data-i18n="basket.details">Your details</h3>
       <div class="field">
-        <label for="oName">Name</label>
+        <label for="oName" data-i18n="basket.name">Name</label>
         <input id="oName" name="name" type="text" autocomplete="name" required>
       </div>
       <div class="field">
-        <label for="oPhone">Phone number</label>
+        <label for="oPhone" data-i18n="basket.phone">Phone number</label>
         <input id="oPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required>
       </div>
       <div class="field">
-        <label for="oDate">Day you want it</label>
+        <label for="oDate" data-i18n="basket.date">Day you want it</label>
         <input id="oDate" name="date" type="date" required>
       </div>
       <fieldset class="field field-radio">
-        <legend>Collection or delivery</legend>
-        <label><input type="radio" name="mode" value="Collection" checked> Collection</label>
-        <label><input type="radio" name="mode" value="Delivery"> Delivery</label>
+        <legend data-i18n="basket.mode">Collection or delivery</legend>
+        <label><input type="radio" name="mode" value="Collection" checked> <span data-i18n="basket.collection">Collection</span></label>
+        <label><input type="radio" name="mode" value="Delivery"> <span data-i18n="basket.delivery">Delivery</span></label>
       </fieldset>
       <div class="field">
-        <label for="oNote">Anything to add <span class="optional">optional</span></label>
-        <textarea id="oNote" name="note" rows="3" maxlength="400" placeholder="Writing on the cake, allergies, a colour you want"></textarea>
+        <label for="oNote"><span data-i18n="basket.note">Anything to add</span> <span class="optional" data-i18n="basket.optional">optional</span></label>
+        <textarea id="oNote" name="note" rows="3" maxlength="400" data-i18n-placeholder="basket.notePlaceholder" placeholder="Writing on the cake, allergies, a colour you want"></textarea>
       </div>
       <p class="field-error" id="orderError" hidden></p>
     </form>
@@ -275,21 +280,36 @@
 
   <div class="drawer-foot">
     <div class="total-row">
-      <span>Total</span>
+      <span data-i18n="basket.total">Total</span>
       <strong id="cartTotal"></strong>
     </div>
     <button class="btn btn-primary btn-block" type="button" id="sendOrder">
       <svg aria-hidden="true"><use href="#i-chat"/></svg>
-      Confirm on WhatsApp
+      <span data-i18n="basket.confirm">Confirm on WhatsApp</span>
     </button>
-    <p class="drawer-note">This opens WhatsApp with your order already written out. Nothing is sent until you press send there.</p>
+    <p class="drawer-note" data-i18n="basket.confirmNote">This opens WhatsApp with your order already written out. Nothing is sent until you press send there.</p>
   </div>
 </aside>
 
+<div class="code-dialog" id="codeDialog" hidden>
+  <form class="code-panel" id="codeForm">
+    <h2 data-i18n="code.title">Enter the code</h2>
+    <label class="visually-hidden" for="codeInput" data-i18n="code.label">Code</label>
+    <input id="codeInput" type="password" inputmode="numeric" autocomplete="off"
+           maxlength="16" dir="ltr">
+    <p class="code-error" id="codeError" hidden></p>
+    <div class="code-actions">
+      <button class="btn btn-ghost" type="button" id="codeCancel" data-i18n="code.cancel">Cancel</button>
+      <button class="btn btn-primary" type="submit" data-i18n="code.open">Open</button>
+    </div>
+  </form>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assets/js/data.js?v=3"></script>
-<script src="assets/js/store.js?v=3"></script>
-<script src="assets/js/main.js?v=3"></script>
+<script src="/assets/js/data.js?v=21"></script>
+<script src="/assets/js/i18n.js?v=21"></script>
+<script src="/assets/js/store.js?v=21"></script>
+<script src="/assets/js/main.js?v=21"></script>
 </body>
 </html>
