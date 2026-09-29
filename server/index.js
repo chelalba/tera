@@ -16,6 +16,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { URL } = require('node:url');
 
+/* Settings for your own computer live in a .env file beside this
+   project. It is never committed and never uploaded: on Vercel the
+   same names are set in the dashboard instead. Read before anything
+   else, so routes.js and db.js see the values. */
+require('./env.js')();
+
 const { handle, corsHeadersFor, seed } = require('./routes.js');
 
 /* A host tells us which port to use. Nobody does locally, and then we

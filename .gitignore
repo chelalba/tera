@@ -4,5 +4,16 @@ data/
 *.db-shm
 *.db-wal
 tera-backup-*.json
+
+# made by npm run seed, from assets/js/data.js
+seed.sql
 .DS_Store
 Thumbs.db
+
+# secrets: the real one never leaves this machine, the example is safe
+.env
+.env.*
+!.env.example
+
+# editor
+.vscode/

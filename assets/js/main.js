@@ -702,17 +702,33 @@
       if (e.key === 'Escape' && !dialog.hidden) close();
     });
 
+    function refuse() {
+      TeraStore.setOwnerKey('');
+      error.textContent = t('code.wrong');
+      error.hidden = false;
+      input.select();
+    }
+
+    /* The code is checked by the server, never here. Nothing in the
+       page decides it, so there is no answer to find by reading the
+       source, and only one place to set it. */
     $('#codeForm').addEventListener('submit', e => {
       e.preventDefault();
       const given = input.value.trim();
-      if (!given || given !== String(SHOP.ownerCode)) {
-        error.textContent = t('code.wrong');
-        error.hidden = false;
-        input.select();
-        return;
-      }
+      if (!given) return refuse();
+
+      const submit = $('button[type="submit"]', $('#codeForm'));
+      submit.disabled = true;
+      error.hidden = true;
+
       TeraStore.setOwnerKey(given);
-      window.location.href = '/pages/owner.html';
+      TeraStore.load()
+        .then(() => {
+          if (TeraStore.isOwner()) window.location.href = '/pages/owner.html';
+          else refuse();
+        })
+        .catch(refuse)
+        .then(() => { submit.disabled = false; });
     });
   }
 

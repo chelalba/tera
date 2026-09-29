@@ -5,10 +5,12 @@
   "description": "TiraMood: shop page in English and Arabic, menu manager, WhatsApp orders, SQLite.",
   "main": "server/index.js",
   "scripts": {
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "seed": "node scripts/push-seed.js",
+    "seed:sql": "node scripts/make-seed-sql.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0"
