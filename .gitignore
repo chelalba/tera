@@ -4,6 +4,9 @@ data/
 *.db-shm
 *.db-wal
 tera-backup-*.json
+
+# made by npm run seed, from assets/js/data.js
+seed.sql
 .DS_Store
 Thumbs.db
 

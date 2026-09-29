@@ -19,12 +19,6 @@ const SHOP = {
   instagram: 'https://instagram.com/tira.mood39',
   facebook: 'https://facebook.com/tiramood',
 
-  /* The code behind the star at the end of the header. It only hides
-     the door, it does not lock it: anyone reading the page can find
-     it. Set OWNER_PASSWORD on the server for a real lock, and make it
-     the same as this so one code does both. */
-  ownerCode: '1212',
-
   hours: 'Every day except Friday',
   hours_ar: 'كل يوم من غير الجمعة'
 
