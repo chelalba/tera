@@ -10,7 +10,7 @@
     "seed:sql": "node scripts/make-seed-sql.js"
   },
   "engines": {
-    "node": "24.x"
+    "node": "22.x"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0"
