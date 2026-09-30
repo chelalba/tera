@@ -217,6 +217,21 @@ does not restart anything.
 **The manager will not accept the code.** What you type must match
 `OWNER_PASSWORD` exactly.
 
+**The address says 404 DEPLOYMENT_NOT_FOUND.** This one is not the code. It
+means Vercel has nothing behind that address any more: the project was deleted,
+or renamed, and renaming changes the address. Open vercel.com and look at the
+dashboard.
+
+- **The project is still listed.** Its address is on the project page, and it
+  may not be the one you had before. Use that one. If it is listed but has no
+  deployment, open **Deployments** and **Redeploy** the most recent.
+- **The project is gone.** Import it again, exactly as in Step 2, and add the
+  three variables again as in Step 3. Nothing is lost: the pages are on GitHub
+  and the menu, the ratings and the notes are in Turso, untouched by any of it.
+
+Either way check **Settings**, **Git**, and make sure the **Production Branch**
+is **main**. That is the branch the live address serves.
+
 **Everything else.** Vercel: **Deployments**, open the latest, read the
 **Functions** log. The error will be there.
 
