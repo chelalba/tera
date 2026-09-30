@@ -90,7 +90,7 @@ const MENU = [
     id: 'walnut-baklava',
     name: 'Walnut baklava',
     name_ar: 'بقلاوة بالجوز',
-    category: 'pies',
+    category: 'cookies',
     price: 2400,
     serves: 'Box of 12',
     serves_ar: 'علبة 12 قطعة',
@@ -148,30 +148,6 @@ const MENU = [
     illo: 'cake', tint: '#efdfa8', photo: ''
   },
   {
-    id: 'apple-cinnamon-pie',
-    name: 'Apple cinnamon pie',
-    name_ar: 'فطيرة التفاح بالقرفة',
-    category: 'pies',
-    price: 2200,
-    serves: 'Serves 8',
-    serves_ar: 'تكفي 8 أشخاص',
-    desc: 'Butter pastry, apples cooked down with cinnamon, lattice top.',
-    desc_ar: 'عجين بالزبدة وتفاح مطهو مع القرفة، بوجه مضفور.',
-    illo: 'pie', tint: '#e8c9a0', photo: ''
-  },
-  {
-    id: 'pecan-tart',
-    name: 'Pecan tart',
-    name_ar: 'تارت البيكان',
-    category: 'pies',
-    price: 2600,
-    serves: 'Serves 8',
-    serves_ar: 'تكفي 8 أشخاص',
-    desc: 'Short pastry shell filled with pecans and dark caramel.',
-    desc_ar: 'قاعدة عجين هشة محشوة بالبيكان والكراميل الداكن.',
-    illo: 'tart', tint: '#d6ae85', photo: ''
-  },
-  {
     id: 'brown-butter-cookies',
     name: 'Brown butter chocolate chip',
     name_ar: 'بسكويت الزبدة البنية بالشوكولاتة',
@@ -194,40 +170,14 @@ const MENU = [
     desc: 'Short almond dough rolled in icing sugar while still warm.',
     desc_ar: 'عجين لوز هش يُغمَّس في السكر الناعم وهو ما زال دافئاً.',
     illo: 'cookie', tint: '#ebd9be', photo: ''
-  },
-  {
-    id: 'vanilla-cupcakes',
-    name: 'Vanilla buttercream cupcakes',
-    name_ar: 'كب كيك الفانيلا بكريمة الزبدة',
-    category: 'cupcakes',
-    price: 1600,
-    serves: 'Box of 6',
-    serves_ar: 'علبة 6 قطع',
-    desc: 'Vanilla sponge with a swirl of buttercream. Tell us the colour you want.',
-    desc_ar: 'إسفنج الفانيلا مع دوامة من كريمة الزبدة. أخبرنا باللون الذي تريده.',
-    illo: 'cupcake', tint: '#f1d9c8', photo: ''
-  },
-  {
-    id: 'red-velvet-cupcakes',
-    name: 'Red velvet cupcakes',
-    name_ar: 'كب كيك ريد فيلفيت',
-    category: 'cupcakes',
-    price: 1800,
-    serves: 'Box of 6',
-    serves_ar: 'علبة 6 قطع',
-    desc: 'Cocoa sponge with cream cheese frosting and a crumb of sponge on top.',
-    desc_ar: 'إسفنج الكاكاو مع كريمة الجبن وفتات الإسفنج فوقها.',
-    illo: 'cupcake', tint: '#dca898', photo: ''
-  }
-];
+  }];
 
 const CATEGORIES = [
-  { id: 'all',      label: 'All',      label_ar: 'الكل' },
-  { id: 'tiramisu', label: 'Tiramisu', label_ar: 'تيراميسو' },
-  { id: 'cakes',    label: 'Cakes',    label_ar: 'كعك' },
-  { id: 'pies',     label: 'Pies',     label_ar: 'فطائر' },
-  { id: 'cookies',  label: 'Cookies',  label_ar: 'بسكويت' },
-  { id: 'cupcakes', label: 'Cupcakes', label_ar: 'كب كيك' }
+  { id: 'all',       label: 'All',            label_ar: 'الكل' },
+  { id: 'tiramisu',  label: 'Tiramisu',       label_ar: 'تيراميسو' },
+  { id: 'cinnamon',  label: 'Cinnamon rolls', label_ar: 'لفائف القرفة' },
+  { id: 'cookies',   label: 'Cookies',        label_ar: 'بسكويت' },
+  { id: 'cakes',     label: 'Cakes',          label_ar: 'كعك' }
 ];
 
 /* The browser reads the three names above as globals. The server needs
