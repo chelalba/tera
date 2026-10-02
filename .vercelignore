@@ -1,0 +1,24 @@
+# What never needs to reach the web.
+#
+# Vercel serves the repository as it is: anything here would be a real
+# address on the live site. These are working files, not the shop, and
+# docs/ in particular names the database. The function only ever reads
+# api/, server/ and assets/js/data.js, so none of this is missed.
+
+# the original photographs and the style references
+design/
+
+# the hosting notes, which name the database address
+docs/
+
+# run by hand on this machine, never on the server
+scripts/
+start.bat
+
+# editor and project settings
+.claude/
+.vscode/
+
+# a record of which names exist, of no use to a visitor
+.env.example
+README.md

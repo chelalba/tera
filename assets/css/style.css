@@ -1166,3 +1166,33 @@ img.brand-mark {
 .photo-status.is-bad { color: #a14b3a; }
 
 [dir="rtl"] .photo-actions { flex-direction: row-reverse; justify-content: flex-end; }
+
+/* ---------- room for a fingertip ----------
+
+   On a mouse a 26 pixel star is easy; on a phone it is a guess, and
+   rating an item is the one thing we most want a customer to do. So
+   where the pointer is coarse the boxes grow and the padding grows
+   with them, which leaves the drawing exactly the size it was and
+   only the part you can hit gets bigger.
+
+   pointer: coarse rather than a width query, because what matters is
+   the finger, not the screen: a tablet is wide and still touched. */
+
+@media (pointer: coarse) {
+  /* Taller, not wider, and the reason matters. Five stars sit in a
+     row inside a card that is about half the screen on a phone, so
+     widening them both overflows the card and makes neighbouring
+     targets overlap, which means tapping four and getting three.
+     Height is free: there is nothing above or below to collide with,
+     and up-and-down is where a thumb actually misses. */
+  .star { height: 40px; padding: 10px 3px; }
+
+  .star-btn { width: 44px; height: 44px; }
+
+  .lang-btn { padding: .62rem .9rem; }
+
+  /* the two-step delete and the other small manager buttons */
+  .btn-small { padding: .7rem 1.1rem; }
+
+  .icon-btn { min-width: 44px; min-height: 44px; }
+}
