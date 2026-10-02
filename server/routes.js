@@ -52,6 +52,29 @@ function cleanItem(input) {
 
 const reply = (status, body) => ({ status, body });
 
+/* A reply that is a picture rather than JSON. Both the local server
+   and the function on Vercel look for `bytes` and send it raw.
+
+   An id is never reused: changing an item's picture makes a new row at
+   a new address. So this can be cached as hard as caching goes.
+
+   max-age is the browser, s-maxage is the edge. The second one is the
+   one that matters for the bill and the speed: without it Vercel runs
+   the function and reads the database for every visitor, and with it
+   the picture is fetched once and served from the edge thereafter. */
+const sendBytes = (bytes, mime) => ({
+  status: 200,
+  bytes: bytes,
+  mime: mime || 'image/jpeg',
+  cache: 'public, max-age=31536000, s-maxage=31536000, immutable'
+});
+
+/* What a phone camera produces is several megabytes; the browser
+   shrinks it before sending. This is the backstop, not the target. */
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
 /* ---------------------------------------------------------------
    The routes
 
@@ -118,14 +141,51 @@ async function handle({ route, method, body, headers, local }) {
     return reply(200, await db.addOrder(body));
   }
 
+  /* Customers have to be able to see the photographs, so this one is
+     open. Everything about uploading them is not. */
+  if (route.indexOf('/photo/') === 0 && method === 'GET') {
+    const id = decodeURIComponent(route.slice('/photo/'.length));
+    const photo = await db.getPhoto(id);
+    if (!photo) return reply(404, { error: 'no such photo' });
+    return sendBytes(photo.bytes, photo.mime);
+  }
+
   /* ----- the owner only, from here down ----- */
 
   const ownerOnly = route.indexOf('/menu') === 0 ||
                     route === '/orders' ||
                     route === '/backup' ||
+                    route === '/photos' ||
                     route.indexOf('/comments/') === 0;
 
   if (ownerOnly && !owner) return reply(401, { error: 'owner only' });
+
+  /* The picture arrives as base64 inside ordinary JSON. Not the most
+     compact way to move bytes, but it needs no multipart handling and
+     no raw body reading, so the same code works unchanged on this
+     machine and on Vercel. A shrunk photograph is small enough that
+     the third it adds does not matter. */
+  if (route === '/photos' && method === 'POST') {
+    const mime = String(body.mime || '').toLowerCase();
+    if (PHOTO_TYPES.indexOf(mime) < 0) {
+      return reply(400, { error: 'that is not a photograph we can take' });
+    }
+
+    const base64 = String(body.data || '').replace(/^data:[^,]*,/, '');
+    if (!base64) return reply(400, { error: 'the photograph is empty' });
+
+    let bytes;
+    try { bytes = Buffer.from(base64, 'base64'); }
+    catch (err) { return reply(400, { error: 'the photograph did not arrive whole' }); }
+
+    if (!bytes.length) return reply(400, { error: 'the photograph is empty' });
+    if (bytes.length > MAX_PHOTO_BYTES) {
+      return reply(413, { error: 'that photograph is too big, even after shrinking' });
+    }
+
+    const id = await db.savePhoto(bytes, mime);
+    return reply(200, { url: '/api/photo/' + id, bytes: bytes.length });
+  }
 
   if (route === '/menu' && method === 'POST') {
     const item = cleanItem(body);
@@ -140,12 +200,14 @@ async function handle({ route, method, body, headers, local }) {
     if (!item.name) return reply(400, { error: 'the item needs a name' });
     const saved = await db.updateItem(id, item);
     if (!saved) return reply(404, { error: 'no such item' });
+    await db.forgetUnusedPhotos();
     return reply(200, { item: saved, menu: await db.listItems() });
   }
 
   if (route.indexOf('/menu/') === 0 && method === 'DELETE') {
     const id = decodeURIComponent(route.slice('/menu/'.length));
     if (!await db.deleteItem(id)) return reply(404, { error: 'no such item' });
+    await db.forgetUnusedPhotos();
     return reply(200, { menu: await db.listItems() });
   }
 

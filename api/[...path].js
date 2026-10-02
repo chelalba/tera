@@ -76,6 +76,19 @@ module.exports = async function (req, res) {
       local: false          /* nothing reaching Vercel is this machine */
     });
 
+    /* A photograph comes back with bytes on it rather than a body,
+       and is sent raw. The address of a photograph never changes, so
+       it carries a long cache and the edge keeps it: the database is
+       asked for each picture once, not once per visitor. */
+    if (result.bytes) {
+      const buf = Buffer.from(result.bytes);
+      res.statusCode = result.status;
+      res.setHeader('content-type', result.mime);
+      res.setHeader('content-length', buf.length);
+      res.setHeader('cache-control', result.cache || 'no-store');
+      return res.end(buf);
+    }
+
     res.statusCode = result.status;
     res.setHeader('content-type', 'application/json; charset=utf-8');
     res.setHeader('cache-control', 'no-store');

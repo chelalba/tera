@@ -1137,3 +1137,32 @@ img.brand-mark {
   .star-btn svg { width: 15px; height: 15px; }
   .lang-btn { padding: .35rem .5rem; font-size: .76rem; margin-inline-end: 0; }
 }
+
+/* ---------- picking a photograph for an item ---------- */
+
+.photo-pick { display: grid; gap: .7rem; margin-top: .2rem; }
+
+.photo-preview {
+  width: 100%;
+  max-width: 260px;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--sand, #f6efe6);
+}
+
+.photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.photo-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+.photo-status {
+  font-size: .8rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.photo-status.is-bad { color: #a14b3a; }
+
+[dir="rtl"] .photo-actions { flex-direction: row-reverse; justify-content: flex-end; }

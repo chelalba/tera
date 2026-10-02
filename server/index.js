@@ -35,13 +35,19 @@ const ROOT = path.join(__dirname, '..');
    Reading a request
 ---------------------------------------------------------------- */
 
+/* Big enough for a shrunk photograph carried as base64, and no
+   bigger. Vercel refuses a body over about four and a half megabytes,
+   so matching that here means a request that works on this machine
+   works once it is hosted too. */
+const MAX_BODY = 4 * 1024 * 1024;
+
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
     req.on('data', chunk => {
       size += chunk.length;
-      if (size > 256 * 1024) { reject(new Error('too big')); req.destroy(); return; }
+      if (size > MAX_BODY) { reject(new Error('too big')); req.destroy(); return; }
       chunks.push(chunk);
     });
     req.on('end', () => {
@@ -66,6 +72,19 @@ function sendJson(res, status, body) {
     'cache-control': 'no-store'
   });
   res.end(text);
+}
+
+/* Most answers are JSON. A photograph is not, and comes back with
+   `bytes` on it instead of `body`. */
+function sendResult(res, result) {
+  if (!result.bytes) return sendJson(res, result.status, result.body);
+  const buf = Buffer.from(result.bytes);
+  res.writeHead(result.status, {
+    'content-type': result.mime,
+    'content-length': buf.length,
+    'cache-control': result.cache || 'no-store'
+  });
+  res.end(buf);
 }
 
 /* ---------------------------------------------------------------
@@ -158,7 +177,7 @@ const server = http.createServer((req, res) => {
         headers: req.headers,
         local: isLocal(req)
       }))
-      .then(result => sendJson(res, result.status, result.body))
+      .then(result => sendResult(res, result))
       .catch(err => {
         console.error(err);
         sendJson(res, 400, { error: err.message || 'something went wrong' });

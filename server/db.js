@@ -123,6 +123,22 @@ const SCHEMA = [
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
   )`,
+  /* The photographs themselves, not a path to them.
+
+     A host like Vercel has no disk to keep an upload on: the machine
+     that takes the photo is thrown away minutes later. The database is
+     the one place that outlives the request, so the bytes live here and
+     the item keeps a /api/photo/<id> address pointing at them.
+
+     The browser shrinks every photograph before it is sent, so these
+     rows are a couple of hundred kilobytes rather than the several
+     megabytes a phone camera produces. */
+  `CREATE TABLE IF NOT EXISTS photos (
+    id         TEXT PRIMARY KEY,
+    mime       TEXT NOT NULL DEFAULT 'image/jpeg',
+    bytes      BLOB NOT NULL,
+    created_at INTEGER NOT NULL
+  )`,
   `CREATE INDEX IF NOT EXISTS ix_ratings_item ON ratings (item_id)`,
   `CREATE INDEX IF NOT EXISTS ix_lines_order  ON order_lines (order_id)`
 ];
@@ -434,6 +450,41 @@ async function resetToSeed(menu) {
   return seedItems(menu);
 }
 
+/* ---------------------------------------------------------------
+   Photographs
+---------------------------------------------------------------- */
+
+/* The id is the address, and the address never changes once it is
+   given out, so a photograph can be cached by the browser and by the
+   edge for as long as they like. Replacing an item's picture makes a
+   new row with a new id rather than overwriting this one. */
+async function savePhoto(bytes, mime) {
+  const id = Date.now().toString(36) + '-' +
+             Math.random().toString(36).slice(2, 10);
+  await run(
+    'INSERT INTO photos (id, mime, bytes, created_at) VALUES (?, ?, ?, ?)',
+    [id, mime, bytes, now()]
+  );
+  return id;
+}
+
+async function getPhoto(id) {
+  const row = await one('SELECT mime, bytes FROM photos WHERE id = ?', [id]);
+  if (!row) return null;
+  return { mime: row.mime, bytes: row.bytes };
+}
+
+/* Photographs nothing points at any more. Called after an item is
+   deleted or given a different picture, so the database does not fill
+   up with pictures of things that are no longer sold. */
+async function forgetUnusedPhotos() {
+  const result = await run(
+    `DELETE FROM photos WHERE '/api/photo/' || id NOT IN
+       (SELECT photo FROM items WHERE photo <> '')`
+  );
+  return Number(result.rowsAffected || 0);
+}
+
 module.exports = {
   hosted,
   ready,
@@ -442,5 +493,6 @@ module.exports = {
   listComments, addComment, hideComment,
   addOrder, listOrders,
   isEmpty, seedItems, resetToSeed,
-  menuVersion
+  menuVersion,
+  savePhoto, getPhoto, forgetUnusedPhotos
 };

@@ -12,12 +12,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Jost:wght@300;400;500&family=Tajawal:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/style.css?v=24">
+<link rel="stylesheet" href="/assets/css/style.css?v=26">
 </head>
 <body>
 
 <!-- every drawing and icon on the site, shared with the shop page -->
-<script src="/assets/js/sprite.js?v=24"></script>
+<script src="/assets/js/sprite.js?v=26"></script>
 
 <div class="page">
 
@@ -230,8 +230,30 @@
           <svg class="inline-icon" aria-hidden="true"><use href="#i-image"/></svg>
           Photo instead of the drawing <span class="optional">optional</span>
         </label>
-        <input id="fPhoto" type="text" placeholder="assets/img/honey-cake.jpg" autocomplete="off">
-        <span class="field-hint">Leave this empty to use a drawing instead of a photograph.</span>
+        <input id="fPhotoFile" type="file" accept="image/*" hidden>
+        <input id="fPhoto" type="hidden">
+
+        <div class="photo-pick">
+          <div class="photo-preview" id="photoPreview" hidden>
+            <img id="photoPreviewImg" alt="">
+          </div>
+
+          <div class="photo-actions">
+            <button type="button" class="btn btn-ghost btn-small" id="photoChoose">
+              <svg aria-hidden="true"><use href="#i-image"/></svg>
+              <span id="photoChooseLabel">Choose a photo</span>
+            </button>
+            <button type="button" class="btn btn-danger btn-small" id="photoClear" hidden>
+              Remove the photo
+            </button>
+          </div>
+
+          <p class="photo-status" id="photoStatus" hidden></p>
+        </div>
+
+        <span class="field-hint">From your phone or your computer. It is made
+          smaller before it is sent, so it loads quickly for customers. Leave
+          it empty to use a drawing instead.</span>
       </div>
 
       <p class="field-error" id="editorError" hidden></p>
@@ -255,8 +277,8 @@
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="/assets/js/data.js?v=24"></script>
-<script src="/assets/js/store.js?v=24"></script>
-<script src="/assets/js/owner.js?v=24"></script>
+<script src="/assets/js/data.js?v=26"></script>
+<script src="/assets/js/store.js?v=26"></script>
+<script src="/assets/js/owner.js?v=26"></script>
 </body>
 </html>

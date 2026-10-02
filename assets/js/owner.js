@@ -220,6 +220,146 @@
     $('#fPriceUnit').textContent = 'in ' + SHOP.currency;
   }
 
+  /* ---------- the photograph ----------
+
+     A phone camera gives you three to eight megabytes. Sending that
+     would be slow for the owner on a phone, slow for every customer
+     afterwards, and too big for the host to accept at all. So the
+     picture is shrunk here, in the browser, before it goes anywhere:
+     at most 1400 across, saved as JPEG, and the quality stepped down
+     until it is comfortably small.
+
+     A card on the shop page is a few hundred pixels across, so 1200 is
+     already twice what the densest phone screen draws, and it lands
+     around 150 kilobytes. Smaller matters twice over: the owner is
+     often on a phone uploading over mobile data, and every customer
+     downloads it afterwards. */
+
+  const PHOTO_MAX_SIDE = 1200;
+  const PHOTO_TARGET_BYTES = 220 * 1024;
+
+  function photoStatus(message, kind) {
+    const el = $('#photoStatus');
+    el.textContent = message || '';
+    el.hidden = !message;
+    el.classList.toggle('is-bad', kind === 'bad');
+  }
+
+  function showPhoto(url) {
+    const has = Boolean(url);
+    $('#photoPreview').hidden = !has;
+    $('#photoClear').hidden = !has;
+    $('#photoChooseLabel').textContent = has ? 'Choose a different photo' : 'Choose a photo';
+    if (has) $('#photoPreviewImg').src = photoUrl(url);
+  }
+
+  /* Reads the file into something we can draw. createImageBitmap is
+     the one that turns a photograph the right way up on its own,
+     which matters because a phone records which way it was held
+     rather than rotating the pixels. The older path is there for
+     browsers without it. */
+  function decodeImage(file) {
+    if (typeof createImageBitmap === 'function') {
+      return createImageBitmap(file, { imageOrientation: 'from-image' })
+        .catch(() => decodeWithTag(file));
+    }
+    return decodeWithTag(file);
+  }
+
+  function decodeWithTag(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error('This kind of picture cannot be read here. ' +
+                         'A JPEG or PNG works everywhere.'));
+      };
+      img.src = url;
+    });
+  }
+
+  function shrink(source) {
+    const w = source.width;
+    const h = source.height;
+    const scale = Math.min(1, PHOTO_MAX_SIDE / Math.max(w, h));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w * scale));
+    canvas.height = Math.max(1, Math.round(h * scale));
+
+    const ctx = canvas.getContext('2d');
+    /* a PNG with see-through corners would otherwise go black */
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+    if (source.close) source.close();
+
+    /* step the quality down until it is small enough, rather than
+       guessing once: how well a picture compresses depends on the
+       picture */
+    let quality = 0.8;
+    let data = canvas.toDataURL('image/jpeg', quality);
+    while (data.length * 0.75 > PHOTO_TARGET_BYTES && quality > 0.4) {
+      quality -= 0.07;
+      data = canvas.toDataURL('image/jpeg', quality);
+    }
+
+    return {
+      data: data,
+      width: canvas.width,
+      height: canvas.height,
+      bytes: Math.round(data.length * 0.75)
+    };
+  }
+
+  function kb(n) { return Math.round(n / 1024) + ' KB'; }
+
+  function pickPhoto(file) {
+    if (!file) return;
+    if (!/^image\//.test(file.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)) {
+      photoStatus('That file is not a picture.', 'bad');
+      return;
+    }
+
+    photoStatus('Reading the photo…');
+    $('#photoChoose').disabled = true;
+
+    decodeImage(file)
+      .then(source => {
+        const small = shrink(source);
+        photoStatus('Sending ' + kb(small.bytes) + '…');
+        return TeraStore.uploadPhoto(small.data, 'image/jpeg')
+          .then(url => ({ url: url, small: small }));
+      })
+      .then(result => {
+        $('#fPhoto').value = result.url;
+        showPhoto(result.url);
+        syncPreview();
+        photoStatus('Saved. ' + kb(file.size) + ' became ' + kb(result.small.bytes) +
+                    ', ' + result.small.width + ' by ' + result.small.height + '.');
+      })
+      .catch(err => {
+        photoStatus(err.message || 'The photo could not be sent. Try again.', 'bad');
+      })
+      .then(() => {
+        $('#photoChoose').disabled = false;
+        $('#fPhotoFile').value = '';     /* so the same file can be picked again */
+      });
+  }
+
+  function wirePhoto() {
+    $('#photoChoose').addEventListener('click', () => $('#fPhotoFile').click());
+    $('#fPhotoFile').addEventListener('change', e => pickPhoto(e.target.files[0]));
+    $('#photoClear').addEventListener('click', () => {
+      $('#fPhoto').value = '';
+      showPhoto('');
+      photoStatus('');
+      syncPreview();
+    });
+  }
+
   function fillForm(item) {
     $('#fName').value = item.name;
     $('#fCategory').value = item.category;
@@ -227,6 +367,8 @@
     $('#fServes').value = item.serves || '';
     $('#fDesc').value = item.desc || '';
     $('#fPhoto').value = item.photo || '';
+    showPhoto(item.photo || '');
+    photoStatus('');
     $('#fNameAr').value = item.name_ar || '';
     $('#fServesAr').value = item.serves_ar || '';
     $('#fDescAr').value = item.desc_ar || '';
@@ -496,6 +638,7 @@
   buildPickers();
   wireList();
   wireEditor();
+  wirePhoto();
   wireDrawer();
   wireReset();
   wireLock();

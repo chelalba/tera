@@ -314,6 +314,16 @@ const TeraStore = (function () {
   function cart() { return readLocal(KEY_CART, []); }
   function saveCart(lines) { writeLocal(KEY_CART, lines); }
 
+  /* ----- photographs --------------------------------------------- */
+
+  /* Sends a picture the owner picked and gives back the address it
+     now lives at, ready to be put on an item. The shrinking happens
+     before this, in the manager. */
+  function uploadPhoto(base64, mime) {
+    return call('POST', '/photos', { data: base64, mime: mime })
+      .then(d => d.url);
+  }
+
   /* ----- owner -------------------------------------------------- */
 
   function isOwner() { return cache.owner; }
@@ -326,6 +336,7 @@ const TeraStore = (function () {
     comments, addComment,
     addOrder,
     cart, saveCart,
+    uploadPhoto,
     isOwner, ownerNeedsKey, ownerKey, setOwnerKey
   };
 })();

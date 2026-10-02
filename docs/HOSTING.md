@@ -127,11 +127,27 @@ HTTPS is automatic.
 **Changing the menu.** Open the address on your phone, tap the star, enter the
 code. Add, edit, reorder, delete. Live for customers at once. No pushing.
 
-**Changing the pages, the photos or the shop settings.** These are code:
+**Photographs of the items.** Open the item in the manager and press **Choose a
+photo**. On a phone that offers the camera and the camera roll; on a computer it
+opens the file picker. Nothing to push, nothing to upload by hand.
+
+The browser shrinks the picture before it is sent: at most 1200 across, saved as
+JPEG, which turns the three to eight megabytes a phone camera produces into
+about 150. That is deliberate. You are often on mobile data when you do this,
+and every customer downloads it afterwards.
+
+The picture itself is kept in Turso, next to the menu. A host like Vercel has no
+disk that survives a request, so there is nowhere else it could live that would
+still be there tomorrow. Each one gets a permanent address, which means the edge
+caches it and the database is asked for it once rather than once per visitor.
+Changing an item's picture leaves the old one unused, and unused pictures are
+cleared out whenever an item is saved or deleted.
+
+**Changing the pages or the shop settings.** These are code:
 
 ```bash
 git add -A
-git commit -m "New photos"
+git commit -m "New wording"
 git push
 ```
 
