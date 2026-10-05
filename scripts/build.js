@@ -26,7 +26,7 @@ const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'dist');
 
 /* the whole public site, and nothing else */
-const PUBLISH = ['index.html', 'robots.txt', 'assets', 'pages'];
+const PUBLISH = ['index.html', '404.html', 'robots.txt', 'assets', 'pages'];
 
 function copy(from, to) {
   const stat = fs.statSync(from);
