@@ -214,7 +214,9 @@ server.once('listening', () => {
   console.log('  ' + seed.SHOP.name + ' is running');
   console.log('  Shop      ' + where + '/');
   console.log('  Manager   ' + where + '/pages/owner.html');
-  console.log('  Database  ' + (process.env.TURSO_URL ? 'Turso, ' + process.env.TURSO_URL : 'data/tera.db'));
+  console.log('  Database  ' + (process.env.SUPABASE_URL
+    ? 'Supabase, ' + process.env.SUPABASE_URL.replace(/^https?:\/\//, '')
+    : 'NOT SET. Fill in SUPABASE_URL and SUPABASE_SERVICE_KEY in .env'));
   console.log('');
   if (process.env.OWNER_PASSWORD) {
     console.log('  The menu manager asks for the OWNER_PASSWORD you set.');

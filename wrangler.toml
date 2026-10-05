@@ -1,0 +1,11 @@
+name = "tiramood"
+compatibility_date = "2026-10-05"
+
+# The Supabase client is written for Node as well as the browser, and
+# reaches for a few Node built-ins on the way in. This flag gives the
+# isolate enough of them that it loads cleanly.
+compatibility_flags = ["nodejs_compat"]
+
+# Only what scripts/build.js put there. Never the project root: Pages
+# serves this folder exactly as it finds it.
+pages_build_output_dir = "dist"

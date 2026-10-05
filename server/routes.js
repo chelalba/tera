@@ -10,10 +10,21 @@
 
 'use strict';
 
-const db = require('./db.js');
+const db = require('./supabase.js');
 const seed = require('../assets/js/data.js');
 
-const OWNER_PASSWORD = process.env.OWNER_PASSWORD || '';
+/* Settings arrive one of two ways. On this machine they are in the
+   environment, read from .env before anything else runs. On Cloudflare
+   there is no such thing: the function is handed its own bindings per
+   request, and passes them here before doing anything. */
+let OWNER_PASSWORD = (typeof process !== 'undefined' && process.env &&
+                      process.env.OWNER_PASSWORD) || '';
+
+function configure(env) {
+  if (!env) return;
+  if (env.OWNER_PASSWORD !== undefined) OWNER_PASSWORD = env.OWNER_PASSWORD || '';
+  db.configure(env);
+}
 
 /* ---------------------------------------------------------------
    Who is asking
@@ -52,28 +63,21 @@ function cleanItem(input) {
 
 const reply = (status, body) => ({ status, body });
 
-/* A reply that is a picture rather than JSON. Both the local server
-   and the function on Vercel look for `bytes` and send it raw.
-
-   An id is never reused: changing an item's picture makes a new row at
-   a new address. So this can be cached as hard as caching goes.
-
-   max-age is the browser, s-maxage is the edge. The second one is the
-   one that matters for the bill and the speed: without it Vercel runs
-   the function and reads the database for every visitor, and with it
-   the picture is fetched once and served from the edge thereafter. */
-const sendBytes = (bytes, mime) => ({
-  status: 200,
-  bytes: bytes,
-  mime: mime || 'image/jpeg',
-  cache: 'public, max-age=31536000, s-maxage=31536000, immutable'
-});
-
 /* What a phone camera produces is several megabytes; the browser
    shrinks it before sending. This is the backstop, not the target. */
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
 
 const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+/* base64 to bytes, without Buffer.
+   Buffer is a Node idea and this file also runs inside Cloudflare's
+   V8 isolate, where it does not exist. atob is in both. */
+function bytesFromBase64(base64) {
+  const binary = atob(base64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
+  return out;
+}
 
 /* ---------------------------------------------------------------
    The routes
@@ -141,14 +145,12 @@ async function handle({ route, method, body, headers, local }) {
     return reply(200, await db.addOrder(body));
   }
 
-  /* Customers have to be able to see the photographs, so this one is
-     open. Everything about uploading them is not. */
-  if (route.indexOf('/photo/') === 0 && method === 'GET') {
-    const id = decodeURIComponent(route.slice('/photo/'.length));
-    const photo = await db.getPhoto(id);
-    if (!photo) return reply(404, { error: 'no such photo' });
-    return sendBytes(photo.bytes, photo.mime);
-  }
+  /* There is no route for reading a photograph any more. They live in
+     Supabase Storage with a public address, so a customer's browser
+     fetches each one straight from there. It never passes through this
+     function, which is the point: a function on the free plan is
+     measured in milliseconds of work per request, and shifting image
+     bytes it does not need to touch would spend all of them. */
 
   /* ----- the owner only, from here down ----- */
 
@@ -175,7 +177,7 @@ async function handle({ route, method, body, headers, local }) {
     if (!base64) return reply(400, { error: 'the photograph is empty' });
 
     let bytes;
-    try { bytes = Buffer.from(base64, 'base64'); }
+    try { bytes = bytesFromBase64(base64); }
     catch (err) { return reply(400, { error: 'the photograph did not arrive whole' }); }
 
     if (!bytes.length) return reply(400, { error: 'the photograph is empty' });
@@ -183,8 +185,8 @@ async function handle({ route, method, body, headers, local }) {
       return reply(413, { error: 'that photograph is too big, even after shrinking' });
     }
 
-    const id = await db.savePhoto(bytes, mime);
-    return reply(200, { url: '/api/photo/' + id, bytes: bytes.length });
+    const saved = await db.savePhoto(bytes, mime);
+    return reply(200, { url: saved.url, bytes: bytes.length });
   }
 
   if (route === '/menu' && method === 'POST') {
@@ -255,4 +257,14 @@ function corsHeadersFor(origin) {
   };
 }
 
-module.exports = { handle, corsHeadersFor, seed, ownerNeedsKey: Boolean(OWNER_PASSWORD) };
+/* ownerNeedsKey is a function now, not a value. It used to be read
+   once when this file loaded, which was fine when the only setting
+   came from the environment at startup. Cloudflare hands the settings
+   over later, so reading it early would always have said no. */
+module.exports = {
+  handle,
+  configure,
+  corsHeadersFor,
+  seed,
+  ownerNeedsKey: () => Boolean(OWNER_PASSWORD)
+};

@@ -7,12 +7,14 @@
   "scripts": {
     "start": "node server/index.js",
     "seed": "node scripts/push-seed.js",
-    "seed:sql": "node scripts/make-seed-sql.js"
+    "seed:sql": "node scripts/make-seed-sql.js",
+    "build": "node scripts/build.js"
   },
   "engines": {
     "node": "22.x"
   },
   "dependencies": {
-    "@libsql/client": "^0.18.0"
+    "@libsql/client": "^0.18.0",
+    "@supabase/supabase-js": "^2.117.2"
   }
 }

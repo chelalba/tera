@@ -17,3 +17,6 @@ Thumbs.db
 
 # editor
 .vscode/
+
+# made by npm run build
+dist/
