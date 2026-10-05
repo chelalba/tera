@@ -1,297 +1,233 @@
-# Putting TiraMood online properly, with your own name
+# Putting TiraMood online: Cloudflare and Supabase
 
-A real address like **tiramood.com**, on a host that allows a shop to be a
-shop. One step at a time, in order. Nothing here needs a developer.
+The data is already live. This is the other half: getting the pages onto
+Cloudflare and, if you want it, a real name.
 
----
-
-## First, the thing that changes the plan
-
-Vercel's free plan **does not allow a business site**. This is their wording,
-not a guess:
-
-> Hobby teams are restricted to non-commercial personal use only. All
-> commercial usage of the platform requires either a Pro or Enterprise plan.
-
-And they count this as commercial usage:
-
-> Advertising the sale of a product or service
-
-That is exactly what TiraMood is: a menu, with prices, and an order button.
-So the free Vercel account you have been using is against their rules, and an
-account found doing it can be paused without much warning. Losing the shop on
-a Friday because of a rule is not a risk worth carrying.
-
-So this plan moves you somewhere a shop is allowed. The good news is that it
-costs about the price of two coffees a month, and the code already runs in
-both places without a single change.
+Both free plans **allow a business**, which is why we are here rather than on
+Vercel. Cloudflare says so plainly, and static files on Pages are unmetered.
 
 ---
 
-## Step 1. Pick the name and buy it
+## Where things already stand
 
-**Use a `.com`.** Not a `.dz`. An Algerian `.dz` needs a registered Algerian
-company or a trademark certificate, and the registrars that handle it charge
-between 118 and 399 dollars a year. A `.com` is about **10 to 15 dollars a
-year** and nobody has to prove anything.
+**Supabase is done.** Nothing left to do there.
 
-Good names, in the order I would try them:
+| | |
+|---|---|
+| Project | `tiramood`, Paris |
+| Address | `https://upbijweychvpuzbtmlxw.supabase.co` |
+| Tables | items, ratings, comments, orders, order_lines, meta, settings |
+| Your menu | 11 items, with their Arabic |
+| Photographs | a public `photos` bucket in Storage |
+| The owner's code | in the `settings` table, hashed |
+| Row level security | on for every table, with no policies, on purpose |
 
-```
-tiramood.com
-tiramood.shop
-tiramood.store
-```
-
-Where to buy, cheapest first:
-
-| Registrar | Roughly | Note |
-|---|---|---|
-| **Cloudflare Registrar** | ~$10/yr | Sells at cost, never raises the price at renewal. Best value. |
-| **Porkbun** | ~$11/yr | Simple, honest pricing, free privacy. |
-| **Namecheap** | ~$13/yr | The most familiar, often cheap in year one then dearer. |
-
-**What to actually do**
-
-1. Go to the registrar and search for `tiramood.com`
-2. If it is taken, try `.shop` or `.store` before inventing a longer name
-3. Add it to the basket. **Turn off** every extra they offer: hosting, email,
-   SSL, site builder. You need none of them. Keep WHOIS privacy if it is free.
-4. Pay for **one year** to start, and turn **auto-renew on**
-
-> **Paying from Algeria.** This is usually the hardest part of the whole plan.
-> These sites need a card that works internationally. A local CIB card often
-> will not go through. A Visa or Mastercard that works abroad will, and all
-> three take PayPal, which is the usual way round it. Sort this out before you
-> start, because it blocks everything else.
-
-Write down the login for the registrar somewhere safe. You will need it once a
-year and at no other time, which is exactly how people lose it.
+That last line looks alarming in Supabase's own security advisor and is not a
+mistake. The browser never holds a Supabase key of any kind. It talks to `/api`
+on your own domain, and only the Cloudflare function — holding the secret key,
+which goes past those rules — ever reaches the database. Having **no** policies
+is what makes a leaked publishable key open nothing at all.
 
 ---
 
-## Step 2. Pick the host
+## Step 1. Get the code onto GitHub
 
-Two honest options. Both allow a business. Both keep your Turso database
-exactly as it is.
-
-### Option A — Render, about $7 a month
-
-**Pick this if you want the lowest cost.**
-
-The project is a plain Node server that serves the pages and answers the menu
-by itself. Render runs it as it is: no rewrite, no new files, no settings to
-invent. It is also, quietly, a little safer, because the server only ever
-hands out four things over the web (`assets`, `pages`, `index.html`,
-`robots.txt`) and keeps everything else private without being asked.
-
-Do **not** use Render's free tier for the shop. A free service goes to sleep
-after 15 minutes with no visitors, and the next customer waits half a minute
-staring at nothing. For a shop that is worse than no website.
-
-### Option B — Vercel Pro, $20 a month
-
-**Pick this if you want it fastest everywhere and least fiddly.**
-
-It is what the project was shaped for, your deployment settings already exist,
-and pages are served from servers close to whoever is looking. For customers
-in Algeria opening the menu on mobile data, that difference is real.
-
-### Which one
-
-Start with **Render at $7**. It does everything you need today, and the shop
-is small. If the site ever feels slow for customers, moving to Vercel Pro
-later is an afternoon's work, not a rebuild.
-
----
-
-## Step 3. Put the code where the host can see it
-
-The host reads from GitHub. There are commits sitting on this computer that
-have never been sent, including the photo button.
+Cloudflare builds from GitHub, so nothing can deploy until the commits are
+pushed.
 
 ```bash
 git push
 ```
 
-Nothing goes live from this. It only puts the code where a host can reach it.
+Nothing goes live from this on its own.
+
+---
+
+## Step 2. Make the Pages project
+
+1. Go to **dash.cloudflare.com** and sign in
+2. **Workers & Pages**, then **Create**, then the **Pages** tab
+3. **Connect to Git**, allow Cloudflare to see your GitHub, pick **tera**
+
+Then the build settings:
+
+| Setting | Value |
+|---|---|
+| Production branch | `main` |
+| Framework preset | **None** |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+
+**`dist` matters.** Pages serves its output folder exactly as it finds it.
+Pointing it at the project root would publish `server/`, `docs/` and `.env`.
+`npm run build` copies only the public site into `dist/` and refuses to build
+if anything private appears on the list.
+
+---
+
+## Step 3. Add the two variables. Do not skip this
+
+Still on the setup screen, open **Environment variables** and add both, for
+**Production**:
+
+| Name | Value |
+|---|---|
+| `SUPABASE_URL` | `https://upbijweychvpuzbtmlxw.supabase.co` |
+| `SUPABASE_SERVICE_KEY` | the `sb_secret_...` key |
+
+Get the secret key from
+**Supabase → Project Settings → API Keys → Secret keys**. It is the same one
+that is in your `.env`.
+
+**There is no `OWNER_PASSWORD` any more.** The code lives in Supabase now, and
+is changed from the manager.
 
 ---
 
 ## Step 4. Deploy
 
-### If you chose Render
+Press **Save and Deploy** and wait a couple of minutes. You get an address like
+`tiramood.pages.dev`.
 
-1. Go to **render.com** and **Sign up with GitHub**
-2. **New** then **Web Service**
-3. Choose the **tera** repository
-4. Fill in:
+Pushing to `main` redeploys on its own from then on.
 
-| Setting | Value |
-|---|---|
-| Name | `tiramood` |
-| Region | **Frankfurt** — the closest to Algeria |
-| Branch | `main` |
-| Runtime | **Node** |
-| Build Command | `npm install` |
-| Start Command | `npm start` |
-| Instance Type | **Starter** (the paid one, not Free) |
+---
 
-5. Open **Environment Variables** and add all three **before** you deploy:
+## Step 5. Check it, on a phone
 
-```
-TURSO_URL        libsql://tiramood-chelalba.aws-eu-west-1.turso.io
-TURSO_TOKEN      the long eyJhbGci... line
-OWNER_PASSWORD   a code only you know
-```
+That is where your customers are, so test there and not on the computer.
 
-6. Press **Create Web Service** and wait two or three minutes
+1. Open the address. 15 photographs and 11 items should be there.
+2. Press **العربية**. The page flips right to left.
+3. Put a cake in the basket, press Confirm. WhatsApp opens with the order
+   written out, going to your number.
+4. Tap the **star** at the end of the header, enter the code.
+5. Change a price. Save.
+6. **Open the shop on somebody else's phone. The new price is there.**
+7. Add an item, press **Choose a photo**, take a picture with the camera.
+   It appears on the shop.
 
-### If you chose Vercel Pro
+Steps 6 and 7 are the ones that prove it.
 
-1. **vercel.com**, upgrade the team to **Pro** first
-2. **Add New** then **Project**, import **tera**
-3. Framework Preset **Other**. Leave build and output empty.
-4. Add the same three variables before deploying
-5. **Deploy**, then **Settings**, **Git**, and set **Production Branch** to
-   `main`
+One oddity, not a fault: Cloudflare strips `.html`, so the manager's address
+ends up as `/pages/owner` rather than `/pages/owner.html`. It gets there either
+way.
 
-### About the password
+---
 
-`OWNER_PASSWORD` is the only thing standing between a stranger and your menu.
-`1212` was fine while this was on your own computer. On a public address it is
-not. Make it long and not a date:
+## Step 6. Change the code
 
-```
-tiramood-kitchen-2026-amina
-```
+`1212` is four digits on a public address. In the manager there is now a
+**Change the code** button: at least six characters, live on every device at
+once, nothing to redeploy.
 
 Write it down. Nothing in the website knows it, so nothing can remind you.
 
 ---
 
-## Step 5. Point the name at the host
+## Step 7. Your own name, if you want one
 
-You now have a working site at an ugly address. This gives it the real one.
+Use a **`.com`**, about **$12 a year**. Not a `.dz`: that needs a registered
+Algerian company or a trademark certificate, and the registrars that handle it
+charge between $118 and $399 a year.
 
-### On Render
+Cheapest first: **Cloudflare Registrar** (sells at cost, and the domain is
+already where your site is), then **Porkbun**, then **Namecheap**.
 
-1. Open the service, then **Settings**, then **Custom Domains**
-2. **Add Custom Domain** and type `tiramood.com`
-3. Add it again as `www.tiramood.com`
-4. Render shows you records to copy
+Then, in your Pages project: **Custom domains**, **Set up a domain**, type it
+in. If you bought it at Cloudflare the records are added for you. HTTPS is
+automatic and free — never buy an SSL certificate.
 
-### On Vercel
-
-1. **Settings**, **Domains**, **Add**, type `tiramood.com`
-2. Vercel shows you records to copy
-
-### Then, at the registrar
-
-Open the domain's **DNS** page and enter exactly what the host told you. It
-will look like this, and the host's own screen is the authority, not this
-table:
-
-| Type | Name | Points to |
-|---|---|---|
-| A | `@` | the address the host gave you |
-| CNAME | `www` | the address the host gave you |
-
-Save. Then wait. It is usually minutes but it is allowed to take a day, and
-there is nothing to fix while you wait. The host's domain page turns green by
-itself when it is ready.
-
-**HTTPS and the padlock happen on their own.** Do not buy an SSL certificate.
-Both hosts make one for free. Anybody selling you one is selling you nothing.
+> **Paying from Algeria** is usually the hard part. A local CIB card often will
+> not go through on an international registrar. A Visa or Mastercard that works
+> abroad will, and all of them take PayPal. Sort this out first, because it
+> blocks everything else.
 
 ---
 
-## Step 6. Check it, in this order
+## What it costs
 
-Do these on a **phone**, not the computer, because that is where customers
-will be.
+| | |
+|---|---|
+| Cloudflare Pages | **free** — static files unmetered, 100,000 function calls a day |
+| Supabase | **free** — far more than this shop will use |
+| Domain | ~$12 a year, optional |
 
-1. Open `https://tiramood.com`. Padlock showing. Menu loads, photos there.
-2. Press **العربية**. The page flips right to left.
-3. Put a cake in the basket and press Confirm. WhatsApp opens with the order
-   written out, going to your number.
-4. Tap the **star** in the header, enter your new `OWNER_PASSWORD`.
-5. Change a price. Save.
-6. **Open the shop on somebody else's phone. The new price is there.**
-7. Add an item and press **Choose a photo**. Take a picture with the camera.
-   It appears on the shop.
-
-Step 6 and step 7 are the ones that prove it. If those work, it all works.
+About **1,600 DA a year**, and nothing at all if you keep the
+`tiramood.pages.dev` address.
 
 ---
 
-## What it costs a year
+## The one thing to watch
 
-| | Render | Vercel Pro |
-|---|---|---|
-| Domain | ~$12 | ~$12 |
-| Hosting | ~$84 | ~$240 |
-| Database (Turso free) | $0 | $0 |
-| HTTPS | $0 | $0 |
-| **Total** | **~$96 a year** | **~$252 a year** |
+**Supabase pauses a free project after 7 days of low activity.** Their words:
+a few requests a day over the week is enough to prevent it. A normal week of
+customers is plenty. A quiet week — a holiday, a closure — is not, and the shop
+goes down until you press **Resume project** in the dashboard.
 
-About 13,000 DA a year on Render, at the time of writing. Prices change, so
-check the page before you pay.
+They email a warning about a week beforehand, and a paused project can be
+restored for 90 days with one button.
+
+Three ways to live with it:
+
+- **Do nothing.** Check the email if one arrives. Free.
+- **Open the shop yourself every few days.** That counts as activity.
+- **Supabase Pro, $25 a month.** Paid projects are never paused.
+
+For a shop that is open most weeks, doing nothing is a reasonable answer. Just
+know which way it fails, so a dead site on a Monday is not a mystery.
 
 ---
 
-## Keeping it alive
+## Living with it
 
-**Every year.** The domain renews. Keep auto-renew on and keep a working card
-on the registrar. A shop whose domain lapses disappears completely, and
-somebody else can buy the name.
+**The menu, prices, photographs, the code.** All from your phone, through the
+star. Nothing to push.
 
-**The menu, prices, photos.** All from your phone, through the star. Nothing
-to push, nobody to ask.
-
-**The words on the pages, the hours, the phone number.** These are in the code.
-Change them here, then `git push`, and the host rebuilds itself in a minute.
-
-**The database.** Turso's free tier is far more than this shop will use. If it
-ever runs out they will email you long before anything stops.
+**The words on the pages, the hours, the phone number.** These are in the code:
+change them, `git push`, and Cloudflare rebuilds within a minute.
 
 **A backup.** While logged in as the owner:
 
 ```
-https://tiramood.com/api/backup
+https://your-address/api/backup
 ```
 
-Gives you the menu, the ratings, the notes and the orders in one file. Worth
-doing before you change anything big.
+The menu, the ratings, the notes and the orders in one file. It does **not**
+contain your code, by design.
 
 ---
 
-## If it goes wrong
+## If something goes wrong
 
-**The name shows somebody else's page, or an error.** DNS has not finished.
-Wait. Check the records match the host's screen character for character.
+**The menu will not load.** The two Supabase variables are missing or wrong in
+Pages. Fix them, then **Retry deployment** — saving alone does not restart
+anything.
 
-**The menu will not load.** The two Turso variables are missing or wrong in
-the host's settings. Fix them, then **redeploy** — saving alone does not
-restart anything.
+**Everything is slow for one request, then fine.** That is a Supabase project
+waking up, or a cold function. Normal.
 
-**The star will not take the code.** What you type must match
-`OWNER_PASSWORD` exactly.
+**The star will not take the code.** What you type must match what you last
+saved. If you have genuinely lost it, tell me: it can be reset from the
+database.
 
-**It worked, now it says 404 and nothing else.** The deployment is gone, not
-broken. Open the host's dashboard and redeploy. Nothing is lost: the pages are
-on GitHub and the menu is in Turso.
+**Anything else.** Cloudflare: **Workers & Pages**, your project,
+**Deployments**, open the latest, read the **Functions** log.
 
 ---
 
-## The short version
+## Quick reference
 
 ```
-1  Sort out a card that works internationally
-2  Buy tiramood.com                        ~$12/year
-3  git push
-4  Render: Web Service, Frankfurt, Starter, 3 variables
-5  Add the domain, copy the DNS records, wait
-6  Test on a phone: order, star, price, photo
-7  Turn on auto-renew and write the password down
+Pages          Cloudflare, from GitHub, branch main
+Build          npm run build        output: dist
+Variables      SUPABASE_URL, SUPABASE_SERVICE_KEY
+Data           Supabase, project upbijweychvpuzbtmlxw
+Photographs    Supabase Storage, public bucket "photos"
+Owner page     https://your-address/pages/owner
+Menu edits     from your phone, live at once
+Code changes   git push
 ```
+
+How the whole thing is put together:
+**[HOW-IT-IS-BUILT.md](HOW-IT-IS-BUILT.md)**.
