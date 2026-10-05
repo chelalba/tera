@@ -1211,3 +1211,44 @@ img.brand-mark {
 .code-change-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .2rem; }
 
 [dir="rtl"] .code-change-actions { flex-direction: row-reverse; justify-content: flex-end; }
+
+/* ---------- the notes, from the owner's side ---------- */
+
+.note-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .7rem; }
+
+.note-row {
+  display: flex; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--white);
+}
+
+.note-row.is-hidden-note { background: var(--cream); opacity: .72; }
+
+.note-body { flex: 1 1 16rem; min-width: 0; }
+
+.note-head {
+  display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+  margin: 0 0 .35rem;
+}
+
+.note-name { font-weight: 500; color: var(--brown); }
+.note-when { font-size: .78rem; color: var(--muted); }
+
+.note-flag {
+  font-size: .7rem; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: .1rem .5rem;
+}
+
+.note-text { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+
+.note-row .row-actions { flex: 0 0 auto; display: flex; gap: .4rem; }
+
+@media (max-width: 560px) {
+  .note-row .row-actions { width: 100%; }
+}
+
+:root[lang="ar"] .note-flag { text-transform: none; letter-spacing: 0; }

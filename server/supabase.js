@@ -317,6 +317,14 @@ async function addComment(name, text, device) {
   return rowToComment(rows[0]);
 }
 
+/* Gone for good, unlike hiding. For the note that should not exist at
+   all rather than the one that is merely not for the shop window. */
+async function deleteComment(id) {
+  const rows = ok(await sb().from('comments').delete().eq('id', id).select('id'),
+                  'removing a note');
+  return rows.length > 0;
+}
+
 async function hideComment(id, hidden) {
   ok(await sb().from('comments').update({ hidden: Boolean(hidden) }).eq('id', id),
      'hiding a note');
@@ -603,7 +611,7 @@ module.exports = {
   configure, hosted, ready, menuVersion,
   listItems, getItem, createItem, updateItem,
   deleteItem, reorderItems, rateItem, ratingSummaries,
-  ratingsByDevice, listComments, addComment, hideComment,
+  ratingsByDevice, listComments, addComment, hideComment, deleteComment,
   addOrder, listOrders, isEmpty, seedItems,
   resetToSeed, savePhoto, forgetUnusedPhotos,
   ownerSecret, setOwnerPassword, checkOwnerPassword, hasOwnerPassword

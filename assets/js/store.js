@@ -324,6 +324,29 @@ const TeraStore = (function () {
       .then(d => d.url);
   }
 
+  /* ----- the notes, from the owner's side ------------------------ */
+
+  /* Every note including the hidden ones, which only the owner is
+     given. A customer asking the same question gets the visible ones. */
+  function allComments() {
+    return call('GET', '/comments').then(d => {
+      cache.comments = d.comments || [];
+      return cache.comments;
+    });
+  }
+
+  /* Off the shop page, but still there. Undoable. */
+  function setCommentHidden(id, hidden) {
+    return call('PATCH', '/comments/' + id, { hidden: Boolean(hidden) })
+      .then(d => { cache.comments = d.comments || []; return cache.comments; });
+  }
+
+  /* Gone. Not undoable. */
+  function removeComment(id) {
+    return call('DELETE', '/comments/' + id)
+      .then(d => { cache.comments = d.comments || []; return cache.comments; });
+  }
+
   /* Changes the code for everybody, at once. The new one is kept for
      this tab straight away, so the next save does not ask again. */
   function setOwnerPassword(next) {
@@ -346,6 +369,7 @@ const TeraStore = (function () {
     addOrder,
     cart, saveCart,
     uploadPhoto, setOwnerPassword,
+    allComments, setCommentHidden, removeComment,
     isOwner, ownerNeedsKey, ownerKey, setOwnerKey
   };
 })();

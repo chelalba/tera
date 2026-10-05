@@ -261,6 +261,18 @@ async function handle({ route, method, body, headers, local }) {
     return reply(200, { menu: await db.resetToSeed(seed.MENU) });
   }
 
+  /* Two different things, on purpose.
+
+     Hiding takes a note off the shop page and is undoable, which is
+     what you want for one that is merely awkward. Deleting is for the
+     one that should never have been written: it does not come back. */
+  if (route.indexOf('/comments/') === 0 && method === 'DELETE') {
+    const id = Number(route.slice('/comments/'.length));
+    if (!Number.isFinite(id)) return reply(400, { error: 'which note?' });
+    if (!await db.deleteComment(id)) return reply(404, { error: 'no such note' });
+    return reply(200, { comments: await db.listComments(true) });
+  }
+
   if (route.indexOf('/comments/') === 0 && method === 'PATCH') {
     const id = Number(route.slice('/comments/'.length));
     await db.hideComment(id, Boolean(body.hidden));

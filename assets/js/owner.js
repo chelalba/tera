@@ -27,6 +27,7 @@
 
   const state = {
     menu: [],
+    notes: [],
     editingId: null,     /* null while adding a new item */
     draft: null,
     busy: false,
@@ -186,6 +187,100 @@
       }
 
       if (e.target.closest('[data-edit]')) openEditor(state.menu[index]);
+    });
+  }
+
+  /* ---------- the notes people leave ----------
+
+     Two different powers, and the difference matters. Hiding takes a
+     note off the shop page and can be undone, which is what you want
+     for one that is merely awkward or out of date. Deleting is for the
+     one that should never have been written, and it does not come
+     back, so it asks twice like everything else that cannot be undone. */
+
+  function when(ts) {
+    const d = new Date(Number(ts));
+    if (!Number.isFinite(d.getTime())) return '';
+    return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function renderNotes() {
+    const list = $('#noteList');
+    const notes = state.notes || [];
+    $('#noteCount').textContent = notes.length;
+    $('#noteEmpty').hidden = notes.length > 0;
+
+    list.innerHTML = notes.map(note =>
+      '<li class="note-row' + (note.hidden ? ' is-hidden-note' : '') + '" data-id="' + esc(note.id) + '">' +
+        '<div class="note-body">' +
+          '<p class="note-head">' +
+            '<span class="note-name">' + esc(note.name) + '</span>' +
+            '<span class="note-when">' + esc(when(note.ts)) + '</span>' +
+            (note.hidden ? '<span class="note-flag">hidden from the shop</span>' : '') +
+          '</p>' +
+          '<p class="note-text">' + esc(note.text) + '</p>' +
+        '</div>' +
+        '<div class="row-actions">' +
+          '<button class="btn btn-ghost btn-small" type="button" data-hide>' +
+            (note.hidden ? 'Show again' : 'Hide') + '</button>' +
+          '<button class="btn btn-danger btn-small" type="button" data-remove>' +
+            '<span data-remove-label>Delete</span></button>' +
+        '</div>' +
+      '</li>'
+    ).join('');
+  }
+
+  /* The whole section is for the owner. A stranger would be shown the
+     visible notes and two buttons that refuse them, which is worse
+     than not showing it at all. */
+  function showNotes(on) {
+    const section = $('#notes');
+    section.hidden = !on;
+    if (on) loadNotes();
+  }
+
+  function noteFailed(err) {
+    const box = $('#noteError');
+    box.textContent = (err && err.message) || 'That did not work. Try again.';
+    box.hidden = false;
+  }
+
+  function loadNotes() {
+    return TeraStore.allComments().then(notes => {
+      state.notes = notes;
+      $('#noteError').hidden = true;
+      renderNotes();
+    }).catch(noteFailed);
+  }
+
+  function wireNotes() {
+    $('#noteList').addEventListener('click', e => {
+      const row = e.target.closest('.note-row');
+      if (!row) return;
+      const id = Number(row.dataset.id);
+      const note = (state.notes || []).find(n => Number(n.id) === id);
+      if (!note) return;
+      $('#noteError').hidden = true;
+
+      if (e.target.closest('[data-hide]')) {
+        TeraStore.setCommentHidden(id, !note.hidden).then(notes => {
+          state.notes = notes;
+          renderNotes();
+          toast(note.hidden ? 'Back on the shop page.' : 'Hidden from the shop page.');
+        }).catch(noteFailed);
+        return;
+      }
+
+      const remove = e.target.closest('[data-remove]');
+      if (remove) {
+        arm(remove, $('[data-remove-label]', remove), 'Tap again', 'Delete', () => {
+          TeraStore.removeComment(id).then(notes => {
+            state.notes = notes;
+            renderNotes();
+            toast('The note is gone.');
+          }).catch(noteFailed);
+        });
+      }
     });
   }
 
@@ -665,6 +760,7 @@
           error.hidden = true;
           showLock(false);
           afterChange();
+          showNotes(true);
           toast('Unlocked. You can change the menu now.');
         } else {
           TeraStore.setOwnerKey('');
@@ -685,6 +781,7 @@
   wireEditor();
   wirePhoto();
   wireCode();
+  wireNotes();
   wireDrawer();
   wireReset();
   wireLock();
@@ -724,6 +821,8 @@
 
   TeraStore.load().then(() => {
     afterChange();
-    showLock(!TeraStore.isOwner());
+    const locked = !TeraStore.isOwner();
+    showLock(locked);
+    showNotes(!locked);
   }).catch(rescueOrExplain);
 })();
