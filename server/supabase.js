@@ -466,7 +466,17 @@ async function savePhoto(bytes, mime) {
 
 /* Pictures nothing points at any more. Called after an item is saved
    or deleted, so replacing a photograph does not leave the old one
-   sitting there for ever. */
+   sitting there for ever.
+
+   An hour's grace, and it is not politeness. A photograph is uploaded
+   the moment it is chosen, but it belongs to no item until the owner
+   presses Save, and between those two things they might be writing a
+   description, or finding the Arabic, or answering the door. If
+   anything else were saved in that gap a strict sweep would delete the
+   picture they are halfway through using. So only pictures old enough
+   to be nobody's work in progress are taken. */
+const PHOTO_GRACE = 60 * 60 * 1000;
+
 async function forgetUnusedPhotos() {
   const listed = await sb().storage.from(BUCKET).list('', { limit: 1000 });
   if (listed.error || !listed.data || !listed.data.length) return 0;
@@ -477,7 +487,15 @@ async function forgetUnusedPhotos() {
     items.map(i => String(i.photo).split('/').pop()).filter(Boolean)
   );
 
-  const spare = listed.data.map(f => f.name).filter(n => !used.has(n));
+  const cutoff = Date.now() - PHOTO_GRACE;
+  const spare = listed.data
+    .filter(f => !used.has(f.name))
+    .filter(f => {
+      const made = Date.parse(f.created_at || '');
+      return Number.isNaN(made) ? false : made < cutoff;
+    })
+    .map(f => f.name);
+
   if (!spare.length) return 0;
 
   const gone = await sb().storage.from(BUCKET).remove(spare);
