@@ -39,9 +39,33 @@ function deviceOf(headers) {
    change the menu, which is why working locally needs no setup.
    Online that check means nothing, so a password is required and
    the caller tells us whether the request came from this machine. */
-function isOwner(headers, fromThisMachine) {
-  if (OWNER_PASSWORD) return headers['x-owner-key'] === OWNER_PASSWORD;
+/* The code is kept in the database, hashed, not in a setting on the
+   host. One copy rather than two, and changeable from a phone.
+
+   OWNER_PASSWORD still works, but only as a way in before anything is
+   saved: the first time it is used it moves itself into the database
+   and is never consulted again. That makes a fresh install possible
+   without a chicken and egg, and means nobody has to remember to keep
+   two places in step afterwards. */
+async function isOwner(headers, fromThisMachine) {
+  const given = String(headers['x-owner-key'] || '');
+
+  if (given && await db.checkOwnerPassword(given)) return true;
+  if (await db.hasOwnerPassword()) return false;
+
+  /* nothing saved yet */
+  if (OWNER_PASSWORD) {
+    if (given === OWNER_PASSWORD) {
+      await db.setOwnerPassword(OWNER_PASSWORD);
+      return true;
+    }
+    return false;
+  }
   return Boolean(fromThisMachine);
+}
+
+async function codeIsNeeded() {
+  return (await db.hasOwnerPassword()) || Boolean(OWNER_PASSWORD);
 }
 
 function cleanItem(input) {
@@ -93,7 +117,7 @@ async function handle({ route, method, body, headers, local }) {
   await db.ready(seed.MENU);
 
   const device = deviceOf(headers);
-  const owner = isOwner(headers, local);
+  const owner = await isOwner(headers, local);
   body = body || {};
 
   /* ----- open to everybody ----- */
@@ -114,7 +138,7 @@ async function handle({ route, method, body, headers, local }) {
       menuVersion: version,
       menu, ratings, yourRatings, comments,
       owner,
-      ownerNeedsKey: Boolean(OWNER_PASSWORD)
+      ownerNeedsKey: await codeIsNeeded()
     });
   }
 
@@ -158,6 +182,7 @@ async function handle({ route, method, body, headers, local }) {
                     route === '/orders' ||
                     route === '/backup' ||
                     route === '/photos' ||
+                    route === '/password' ||
                     route.indexOf('/comments/') === 0;
 
   if (ownerOnly && !owner) return reply(401, { error: 'owner only' });
@@ -187,6 +212,20 @@ async function handle({ route, method, body, headers, local }) {
 
     const saved = await db.savePhoto(bytes, mime);
     return reply(200, { url: saved.url, bytes: bytes.length });
+  }
+
+  /* Changing the code. Owner only, like everything from here down,
+     so you must already be in to change it. */
+  if (route === '/password' && method === 'POST') {
+    const next = String(body.password || '').trim();
+    if (next.length < 6) {
+      return reply(400, { error: 'make it at least six characters' });
+    }
+    if (next.length > 100) {
+      return reply(400, { error: 'that is too long' });
+    }
+    await db.setOwnerPassword(next);
+    return reply(200, { saved: true });
   }
 
   if (route === '/menu' && method === 'POST') {
@@ -266,5 +305,5 @@ module.exports = {
   configure,
   corsHeadersFor,
   seed,
-  ownerNeedsKey: () => Boolean(OWNER_PASSWORD)
+  ownerNeedsKey: codeIsNeeded
 };

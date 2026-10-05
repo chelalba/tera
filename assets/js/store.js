@@ -324,6 +324,15 @@ const TeraStore = (function () {
       .then(d => d.url);
   }
 
+  /* Changes the code for everybody, at once. The new one is kept for
+     this tab straight away, so the next save does not ask again. */
+  function setOwnerPassword(next) {
+    return call('POST', '/password', { password: next }).then(d => {
+      setOwnerKey(next);
+      return d;
+    });
+  }
+
   /* ----- owner -------------------------------------------------- */
 
   function isOwner() { return cache.owner; }
@@ -336,7 +345,7 @@ const TeraStore = (function () {
     comments, addComment,
     addOrder,
     cart, saveCart,
-    uploadPhoto,
+    uploadPhoto, setOwnerPassword,
     isOwner, ownerNeedsKey, ownerKey, setOwnerKey
   };
 })();

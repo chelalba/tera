@@ -485,11 +485,108 @@ async function forgetUnusedPhotos() {
   return spare.length;
 }
 
+/* ---------------------------------------------------------------
+   The owner's code
+
+   Kept here rather than in an environment variable, so there is one
+   copy of it and it can be changed from a phone.
+
+   Never stored as the code itself. PBKDF2 with its own salt, ten
+   thousand rounds, which is chosen by the host rather than by taste:
+   a Cloudflare function on the free plan gets ten milliseconds of
+   work per request, and fifty thousand rounds measured seventeen.
+---------------------------------------------------------------- */
+
+const PBKDF2_ROUNDS = 10000;
+
+/* Web Crypto, because this runs in Cloudflare's isolate as well as in
+   Node. Node has it on globalThis from 18 onwards. */
+function webcrypto() {
+  if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.subtle) {
+    return globalThis.crypto;
+  }
+  throw new Error('no Web Crypto here');
+}
+
+function toHex(bytes) {
+  return Array.from(new Uint8Array(bytes))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function derive(password, saltHex) {
+  const crypto = webcrypto();
+  const salt = new Uint8Array(
+    saltHex.match(/.{2}/g).map(h => parseInt(h, 16)));
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: PBKDF2_ROUNDS, hash: 'SHA-256' }, key, 256);
+  return toHex(bits);
+}
+
+/* Compares without leaking, through timing, how much of it matched. */
+function sameSecret(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) {
+    return false;
+  }
+  let different = 0;
+  for (let i = 0; i < a.length; i++) different |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return different === 0;
+}
+
+/* One read per minute per machine, rather than one per request. The
+   isolate keeps module scope between requests, so a shop being read
+   by customers never asks for this at all. */
+let secretCache = { at: 0, value: undefined };
+const SECRET_TTL = 60 * 1000;
+
+async function ownerSecret() {
+  if (secretCache.value !== undefined && Date.now() - secretCache.at < SECRET_TTL) {
+    return secretCache.value;
+  }
+  const rows = ok(await sb().from('settings').select('value').eq('key', 'owner_password'),
+                  'reading the owner code');
+  let value = null;
+  if (rows.length) {
+    try { value = JSON.parse(rows[0].value); } catch (err) { value = null; }
+  }
+  secretCache = { at: Date.now(), value };
+  return value;
+}
+
+async function setOwnerPassword(password) {
+  const crypto = webcrypto();
+  const saltHex = toHex(crypto.getRandomValues(new Uint8Array(16)));
+  const hash = await derive(password, saltHex);
+
+  ok(await sb().from('settings').upsert({
+    key: 'owner_password',
+    value: JSON.stringify({ salt: saltHex, hash, rounds: PBKDF2_ROUNDS }),
+    updated_at: now()
+  }, { onConflict: 'key' }), 'saving the owner code');
+
+  secretCache = { at: 0, value: undefined };
+  return true;
+}
+
+async function checkOwnerPassword(given) {
+  const stored = await ownerSecret();
+  if (!stored || !stored.salt || !stored.hash) return false;
+  if (!given) return false;
+  return sameSecret(await derive(given, stored.salt), stored.hash);
+}
+
+async function hasOwnerPassword() {
+  return Boolean(await ownerSecret());
+}
+
+
 module.exports = {
   configure, hosted, ready, menuVersion,
   listItems, getItem, createItem, updateItem,
   deleteItem, reorderItems, rateItem, ratingSummaries,
   ratingsByDevice, listComments, addComment, hideComment,
   addOrder, listOrders, isEmpty, seedItems,
-  resetToSeed, savePhoto, forgetUnusedPhotos
+  resetToSeed, savePhoto, forgetUnusedPhotos,
+  ownerSecret, setOwnerPassword, checkOwnerPassword, hasOwnerPassword
 };

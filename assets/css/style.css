@@ -1196,3 +1196,18 @@ img.brand-mark {
 
   .icon-btn { min-width: 44px; min-height: 44px; }
 }
+
+/* ---------- changing the owner code ---------- */
+
+.code-change {
+  max-width: 420px;
+  margin: 0 0 1.4rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--cream);
+}
+
+.code-change-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .2rem; }
+
+[dir="rtl"] .code-change-actions { flex-direction: row-reverse; justify-content: flex-end; }

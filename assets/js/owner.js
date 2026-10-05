@@ -349,6 +349,51 @@
       });
   }
 
+  /* ---------- changing the code ----------
+
+     The code is kept in the database, so this changes it for every
+     device at once and there is nothing to redeploy afterwards. */
+  function wireCode() {
+    const form = $('#codeForm');
+    const input = $('#newCode');
+    const error = $('#codeError');
+
+    function show(open) {
+      form.hidden = !open;
+      error.hidden = true;
+      input.value = '';
+      if (open) input.focus();
+    }
+
+    $('#changeCode').addEventListener('click', () => show(form.hidden));
+    $('#codeCancel').addEventListener('click', () => show(false));
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const next = input.value.trim();
+      if (next.length < 6) {
+        error.textContent = 'At least six characters.';
+        error.hidden = false;
+        return;
+      }
+
+      const button = $('button[type="submit"]', form);
+      button.disabled = true;
+      error.hidden = true;
+
+      TeraStore.setOwnerPassword(next)
+        .then(() => {
+          show(false);
+          toast('The code is changed. Use the new one from now on.');
+        })
+        .catch(err => {
+          error.textContent = err.message || 'That could not be saved.';
+          error.hidden = false;
+        })
+        .then(() => { button.disabled = false; });
+    });
+  }
+
   function wirePhoto() {
     $('#photoChoose').addEventListener('click', () => $('#fPhotoFile').click());
     $('#fPhotoFile').addEventListener('change', e => pickPhoto(e.target.files[0]));
@@ -639,6 +684,7 @@
   wireList();
   wireEditor();
   wirePhoto();
+  wireCode();
   wireDrawer();
   wireReset();
   wireLock();
