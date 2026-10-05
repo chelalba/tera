@@ -23,3 +23,7 @@ dist/
 
 # wrangler local settings, same secrets as .env
 .dev.vars
+
+# wrangler build cache
+.wrangler/
+node_modules/.cache/
